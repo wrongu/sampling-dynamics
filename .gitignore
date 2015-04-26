@@ -1,0 +1,4 @@
+*.npy
+*.pyc
+writeup
+.DS_Store
