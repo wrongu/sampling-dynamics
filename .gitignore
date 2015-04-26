@@ -1,4 +1,5 @@
 *.npy
 *.pyc
+*.png
 writeup
 .DS_Store

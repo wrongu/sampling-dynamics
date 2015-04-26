@@ -1,0 +1,1 @@
+This directory, initially empty, will be populated with `.npy` precomputed arrays. See `utils.load_or_run`.
