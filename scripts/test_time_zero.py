@@ -1,5 +1,5 @@
 if __name__ == '__main__' and __package__ is None:
-	__package__ = 'sampling.scripts'
+	__package__ = 'scripts'
 
 import matplotlib.pyplot as plt
 from sys import argv
