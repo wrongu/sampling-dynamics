@@ -15,12 +15,8 @@ parser.add_argument('--prob', dest='p', type=float, default=0.96)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
 parser.add_argument('--k-max', dest='k_max', type=int, default=7)
-parser.add_argument('--init-samples', dest='samples', type=int, default=10000)
 
 args = parser.parse_args()
-
-def variational_distance(P1, P2):
-	return 0.5 * np.abs(P1 - P2).sum()
 
 max_t = 1000
 mixing_times = np.zeros(args.k_max-1)
@@ -30,28 +26,12 @@ for K in range(2, args.k_max+1):
 	net = k_deep_bistable(K, args.p)
 	ev = net.get_node_by_name('X1')
 	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
-	S_start  = np.zeros(count_states(net))
-	S_target = np.zeros(count_states(net))
 
-	for i in range(2**K):
-		id_to_state(net, i)
-		S_start[i]  = net.probability(conditioned_on={ev: 0})
-		S_target[i] = net.probability(conditioned_on={ev: 1})
-	S_start = S_start / S_start.sum()
-	S_target = S_target / S_target.sum()
+	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
+	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
+	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
-	S = S_start
-	i = 0
-	d = variational_distance(S_target, S)
-	while d >= args.eps:
-		vds[i,K-2] = d
-		i = i+1
-		S = np.dot(P,S)
-		d = variational_distance(S_target, S)
-		print i,d
-		if i == max_t-1:
-			break
-	mixing_times[K-2] = i
+	mixing_times[K-2] = mixing_time(S_start, S_target, P, eps=args.eps)
 
 if args.plot:
 	fig = plt.figure()

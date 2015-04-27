@@ -19,9 +19,6 @@ parser.add_argument('--k', dest='K', type=int, default=6)
 
 args = parser.parse_args()
 
-def variational_distance(P1, P2):
-	return 0.5 * np.abs(P1 - P2).sum()
-
 FFMpegWriter = manimation.writers['ffmpeg']
 metadata = dict(title='Mixing Time Animation', artist='Matplotlib', comment='')
 writer = FFMpegWriter(fps=15, metadata=metadata)
@@ -31,15 +28,9 @@ K = args.K
 net = k_deep_bistable(K, args.p)
 ev = net.get_node_by_name('X1')
 P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
-S_start  = np.zeros(count_states(net))
-S_target = np.zeros(count_states(net))
 
-for i in range(2**K):
-	id_to_state(net, i)
-	S_start[i]  = net.probability(conditioned_on={ev: 0})
-	S_target[i] = net.probability(conditioned_on={ev: 1})
-S_start = S_start / S_start.sum()
-S_target = S_target / S_target.sum()
+S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
+S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 max_t = 100
 

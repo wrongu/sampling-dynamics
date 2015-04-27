@@ -112,6 +112,16 @@ def steady_state(net, evidence, nodes, eps=0, K=10000, burnin=100):
 
 	return counts
 
+def analytic_marginal_states(net, conditioned_on={}):
+	N = count_states(net)
+	S = np.zeros(N)
+
+	for i in range(N):
+		id_to_state(net, i)
+		S[i]  = net.probability(conditioned_on)
+	S = S / S.sum()
+	return S
+
 def sample_marginal_states(net, evidence, samples, when=None):
 	"""Computes S[i] = vector of marginal probabilities that net is in state id i.
 
@@ -145,3 +155,22 @@ def mean_state(net, S):
 		for i,n in enumerate(net.iter_nodes()):
 			means[i] += p * n.state_index()
 	return means
+
+def variational_distance(P1, P2):
+	return 0.5 * np.abs(P1 - P2).sum()
+
+def mixing_time(start, target, transition, eps=0.05, max_t=1000):
+	# Using markov transition matrix P, loop until `start` converges to within `eps` of `target`
+	S = start
+	i = 0
+	vds = np.zeros(max_t)
+	d = variational_distance(target, S)
+	vds[0] = d
+	while d >= eps:
+		i = i+1
+		S = np.dot(transition, S)
+		d = variational_distance(target, S)
+		vds[i] = d
+		if i == max_t-1:
+			break
+	return i, vds[:i+1]
