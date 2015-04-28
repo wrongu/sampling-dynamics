@@ -58,22 +58,18 @@ def sampled_switching_times(net, target, max_t=10000, burnin=50, trials=10000):
 	# map from time to count (will be converted to an array later)
 	times = defaultdict(lambda: 0)
 
+	target_ids = id_subset(net, *target)
+
 	# gibbs sampler callback (counts switch if it happened and breaks from sampling loop)
 	def do_check_switch(i, net):
-		switched = True
-		for n,v in target.iteritems():
-			if n.get_value() != v:
-				switched = False
-				break
+		switched = state_to_id(net) in target_ids
 		if switched:
 			times[i] = times[i] + 1
 		# returning True halts the remaining samples
 		return switched
 
 	def is_init_state(i,net):
-		for n,v in target.iteritems():
-			if n.get_value() != v:
-				return True
+		return state_to_id(net) not in target_ids
 
 	# initialize net to a reasonable state
 	gibbs_sample(net, {}, None, 0, burnin)
@@ -84,7 +80,7 @@ def sampled_switching_times(net, target, max_t=10000, burnin=50, trials=10000):
 		gibbs_sample(net, {}, is_init_state, max_t, 0)
 
 		# run sampler until switched (no evidence)
-		slow_gibbs_sample(net, {}, do_check_switch, max_t, 0)
+		gibbs_sample(net, {}, do_check_switch, max_t, 0)
 
 	# convert times to a distribution
 	max_t = max(times.keys())
@@ -161,7 +157,7 @@ if __name__ == '__main__':
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		S_start = analytic_recently_switched_states(net, top_node_percept, 0, P)
 		print '-sample-'
-		empirical = load_or_run('sampled_switching_times_K%d_p%.3f' % (k, args.p), lambda: sampled_switching_times(net, {nodes[0]: 1}, trials=args.samples))
+		empirical = load_or_run('sampled_switching_times_K%d_p%.3f' % (k, args.p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
 		print '-analytic-'
 		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=P, max_t=len(empirical))
 		
