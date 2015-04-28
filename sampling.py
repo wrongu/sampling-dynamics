@@ -16,21 +16,3 @@ def gibbs_sample(net, evidence, sample_fn, K, burnin, randomize=True):
 			random.shuffle(non_evidence_nodes)
 		for n in non_evidence_nodes:
 			net.sample_node(n)
-
-def slow_gibbs_sample(net, evidence, sample_fn, K, burnin):
-	"""Does something like Gibbs Sampling, but net not updated until all nodes sampled
-	"""
-	net.evidence(evidence)
-	non_evidence_nodes = [n for n in net._nodes if n not in evidence]
-
-	next_state = net.state_map()
-
-	for i in xrange(K+burnin):
-		if i >= burnin and sample_fn:
-			if sample_fn(i-burnin, net):
-				return
-		for n in non_evidence_nodes:
-			prev_value = n.get_value()
-			next_state[n] = net.sample_node(n)
-			net.evidence({n: prev_value})
-		net.evidence(next_state)
