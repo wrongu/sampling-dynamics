@@ -152,6 +152,17 @@ def mean_state(net, S):
 			means[i] += p * n.state_index()
 	return means
 
+def node_marginal(net, S, node):
+	"""Return the marginal distribution for the given node (lenth node.size()) according to the state distribution S
+	"""
+	tmp = net.state_map()
+	marg = np.zeros(node.size())
+	for i in xrange(len(S)):
+		id_to_state(net, i)
+		marg[node.state_index()] += S[i]
+	net.evidence(tmp)
+	return marg
+
 def variational_distance(P1, P2):
 	return 0.5 * np.abs(P1 - P2).sum()
 
