@@ -35,26 +35,38 @@ S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 max_t = 100
 
 S = np.zeros((2**K, max_t))
+vds = np.zeros(max_t)
 S[:,0] = S_start
 i = 0
 d = variational_distance(S_target, S[:,0])
+vds[0] = d
 while d >= args.eps:
 	i = i+1
 	S[:,i] = np.dot(P,S[:,i-1])
 	d = variational_distance(S_target, S[:,i])
-	print i,d
+	vds[i] = d
 	if i == max_t-1:
 		break
 t_end = i
 
 fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-plot_net_layerwise(net, colors=mean_state(net, S[:,0]), ax=ax)
+net_ax = fig.add_subplot(2,1,1)
+vd_ax  = fig.add_subplot(2,1,2)
 
+plot_net_layerwise(net, colors=mean_state(net, S[:,0]), ax=net_ax)
+vd_line, = vd_ax.plot([],[],'-k')
+vd_ax.set_xlim([0, t_end])
+vd_ax.set_ylim([0, 1.1])
+
+text_obj = net_ax.text(.005, 0, "sample 0", fontsize=24, verticalalignment='top')
 with writer.saving(fig, "mixing_time_animation.mp4", 100):
 	for i in range(t_end+1):
-		print i
-		plot_net_layerwise(net, colors=mean_state(net, S[:,i]), ax=ax)
+		print "writing frame", i
+		plot_net_layerwise(net, colors=mean_state(net, S[:,i]), ax=net_ax)
+		text_obj.set_text("sample %d" % i)
+
+		vd_line.set_xdata(np.arange(i+1))
+		vd_line.set_ydata(vds[:i+1])
 		writer.grab_frame()
 
 print '-done-'
