@@ -31,29 +31,25 @@ def id_to_state(net, _id):
 
 	return net.state_vector()
 
-def id_subset(net, evidence):
-	"""returns list of state ids that satisfy evidence
+def id_subset(net, where, value=True):
+	"""returns list of state ids that satisfy the condition `where(net)==value`
 	"""
 	tmp = net.state_map()
-	net.evidence(evidence)
 
-	n_ids = count_states(net) / np.prod([n.size() for n in evidence.keys()])
+	n_ids = count_states(net)
 	ids = [0] * n_ids
-
-	evidence_subset = [net._nodes.index(n) for n in evidence.keys()]
-	evidence_vector = np.array(net.state_vector())[evidence_subset]
 
 	# brute force
 	# TODO make more efficient
 	k = 0
-	for _id in xrange(count_states(net)):
-		state = np.array(id_to_state(net, _id))
-		if np.all(state[evidence_subset] == evidence_vector):
+	for _id in xrange(n_ids):
+		id_to_state(net, _id)
+		if where(net) == value:
 			ids[k] = _id
 			k += 1
 
 	net.evidence(tmp)
-	return ids
+	return ids[:k]
 
 def transition_probability(net, state1, state2, sample_order, conditioned_on={}):
 	tmp = net.state_map()

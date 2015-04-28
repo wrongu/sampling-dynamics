@@ -5,13 +5,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from graphical_models import DiscreteVariable, BayesNet
 from collections import defaultdict
-from models import k_deep_bistable, k_wide_bistable
+from models import k_deep_bistable
+from util import load_or_run
 from sampling import *
 from counting import *
 
-def analytic_switching_times(net, init_distribution, target, max_t=None, eps=1e-4):
+def analytic_switching_times(net, init_distribution, target, transition=None, max_t=None, eps=1e-4):
 	"""analytically compute switching time distribution for the given net to transition from
 	the distribution of initial states 'init_distribution' to the target state.
+
+	`target` must be a tuple of (function, value) such that function(net)=value defines when "switched"
+	(this is more general that switching into some {node:value} configuration)
 
 	The algorithm terminates when P(T > t) < eps (that is, when the fraction
 	(1-eps) of times have been accounted for) OR at max_t, if it is defined. Whichever comes
@@ -25,7 +29,8 @@ def analytic_switching_times(net, init_distribution, target, max_t=None, eps=1e-
 
 	n_states = count_states(net)
 
-	P = construct_markov_transition_matrix(net)
+	if transition is None:
+		transition = construct_markov_transition_matrix(net)
 
 	S = init_distribution
 
@@ -34,7 +39,7 @@ def analytic_switching_times(net, init_distribution, target, max_t=None, eps=1e-
 	# values (so flipping back and forth across threshold isn't counted
 	# multiple times)
 
-	target_ids = id_subset(net, target)
+	target_ids = id_subset(net, *target)
 
 	switching_time_distribution = []
 
@@ -42,13 +47,12 @@ def analytic_switching_times(net, init_distribution, target, max_t=None, eps=1e-
 		transitioned_mass = S[target_ids].sum()
 		switching_time_distribution.append(transitioned_mass)
 		S[target_ids] = 0
-		S = np.dot(P, S)
+		S = np.dot(transition, S)
 
 		if max_t is not None and len(switching_time_distribution) >= max_t:
 			break
 
-	full_distribution = np.array(switching_time_distribution)
-	return full_distribution / full_distribution.sum()
+	return np.array(switching_time_distribution)
 
 def sampled_switching_times(net, target, max_t=10000, burnin=50, trials=10000):
 	# map from time to count (will be converted to an array later)
@@ -70,40 +74,6 @@ def sampled_switching_times(net, target, max_t=10000, burnin=50, trials=10000):
 		for n,v in target.iteritems():
 			if n.get_value() != v:
 				return True
-
-	# initialize net to a reasonable state
-	gibbs_sample(net, {}, None, 0, burnin)
-
-	for t in range(trials):
-		# run until in an initialization state (target not true)
-		# NOTE by doing this, we get a better comparison with 'analytic' using 'sample_recently_switched_states' for initialization
-		gibbs_sample(net, {}, is_init_state, max_t, 0)
-
-		# run sampler until switched (no evidence)
-		slow_gibbs_sample(net, {}, do_check_switch, max_t, 0)
-
-	# convert times to a distribution
-	max_t = max(times.keys())
-
-	times_array = np.zeros(max_t+1)
-	for k,v in times.iteritems():
-		times_array[k] = v
-	return times_array / times_array.sum()
-
-def sampled_switching_times_plurality(net, plurality_target, max_t=10000, burnin=500, trials=10000):
-	# map from time to count (will be converted to an array later)
-	times = defaultdict(lambda: 0)
-
-	# gibbs sampler callback (counts switch if it happened and breaks from sampling loop)
-	def do_check_switch(i, net):
-		switched = plurality_state(net) == plurality_target
-		if switched:
-			times[i] = times[i] + 1
-		# returning True halts the remaining samples
-		return switched
-
-	def is_init_state(i,net):
-		return plurality_state(net) != plurality_target
 
 	# initialize net to a reasonable state
 	gibbs_sample(net, {}, None, 0, burnin)
@@ -149,63 +119,105 @@ def sample_recently_switched_states(net, state_fn, max_iterations=50000):
 
 	return S / S.sum()
 
+def analytic_recently_switched_states(net, state_fn, state_at_t0, P=None):
+	N = count_states(net)
+	if P is None: P = construct_markov_transition_matrix(net)
+
+	# find which state ids correspond to the 'initial' or 'time zero' state
+	state0_ids = id_subset(net, state_fn, state_at_t0)
+
+	S = analytic_marginal_states(net)
+
+	# distribution over just-switched states (from S to S') is proportional to
+	# 	P(S=j)*P(S'=i|S=j)
+	# i.e. transition probability from marginal to any of state0_ids *but not from any state0_ids*
+	S_recently_switched = np.zeros(N)
+	S[state0_ids] = 0.
+	S_recently_switched[state0_ids] = np.dot(P, S)[state0_ids]
+	return S_recently_switched / S_recently_switched.sum()
+
+
+def top_node_percept(net):
+	return net._nodes[0].get_value()
+
 if __name__ == '__main__':
-	
-	def do_analytic_switching_time_plots(fig, p=0.9, k_min=2, k_max=7, model_builder=k_deep_bistable, ls='-', legend=True):
-		distributions = [None] * (k_max-k_min+1)
-		ax = fig.add_subplot(111)
-		ax.set_color_cycle(None) # reset colors so dashed lines are same
 
-		for k in range(k_min, k_max+1):
-			print k
-			net = model_builder(k, p)
-			nodes = net._nodes
-			S_start = sample_marginal_states(net, {nodes[0]:0}, 10000)
-			distributions[k-k_min] = analytic_switching_times(net, S_start, {nodes[0]: 1})
+	import argparse
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
+	parser.add_argument('--prob', dest='p', type=float, default=0.96)
+	parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
+	parser.add_argument('--k-max', dest='k_max', type=int, default=7)
+	parser.add_argument('--samples', dest='samples', type=int, default=5000)
+	parser.add_argument('--T', dest='max_t', type=int, default=10000)
+	args = parser.parse_args()
 
-		for d in distributions:
-			ax.plot(d[1:], linestyle=ls)
-		if legend:
-			ax.legend(['k = %d' % k for k in range(k_min, k_max+1)])
-
-	def compare_empirical_analytic_switching_times(p=0.96, k_min=2, k_max=7, model_builder=k_deep_bistable):
-		for k in range(k_min, k_max+1):
-			print k
-			net = model_builder(k, p)
-			nodes = net._nodes
-			print '-init-'
-			S_start = sample_marginal_states(net, {nodes[0]:0}, 10000)
-			print '-sample-'
-			empirical = sampled_switching_times(net,  S_start, {nodes[0]: 1}, trials=5000)
-			print '-analytic-'
-			analytic  = analytic_switching_times(net, S_start, {nodes[0]: 1}, max_t=len(empirical))
-			
+	# Make plots that verify 'analytic' switching time algorithm (compare with sampling)
+	for k in range(2, args.k_max+1):
+		print k
+		net = k_deep_bistable(k, args.p)
+		nodes = net._nodes
+		print '-init-'
+		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		S_start = analytic_recently_switched_states(net, top_node_percept, 0, P)
+		print '-sample-'
+		empirical = load_or_run('sampled_switching_times_K%d_p%.3f' % (k, args.p), lambda: sampled_switching_times(net, {nodes[0]: 1}, trials=args.samples))
+		print '-analytic-'
+		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=P, max_t=len(empirical))
+		
+		if args.plot:
 			plt.figure()
 			plt.plot(analytic)
 			plt.plot(empirical)
 			plt.legend(['analytic', 'sample-approx'])
-			plt.savefig('test_st_%d.png' % k)
+			plt.savefig('plots/cmp_empirical_analytic_st_K%d.png' % k)
 			plt.close()
 
-	# fig = plt.figure()
-	# print '-deep-'
-	# do_analytic_switching_time_plots(fig, k_min=3, k_max=6, p=0.96)
-	# scale = plt.axis()
-	# print '-wide-'
-	# do_analytic_switching_time_plots(fig, k_min=1, k_max=4, model_builder=k_wide_bistable, p=0.96, ls='--', legend=False)
-	# plt.axis(scale)
-	# plt.savefig('deep_vs_wide_analytic_switching_times.png')
+	# Make plots of switching times (with percept defined as top node state)
+	switching_time_distributions = np.zeros((args.max_t, args.k_max-1))
+	actual_max_t = 0
+	for k in range(2, args.k_max+1):
+		print k
+		net = k_deep_bistable(k, args.p)
+		print '-transition-'
+		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		print '-init-'
+		S_init = analytic_recently_switched_states(net, top_node_percept, 0, P)
+		print '-analytic st-'
+		SW_distrib = analytic_switching_times(net, S_init, (top_node_percept, 1), transition=P, max_t=args.max_t)
+		actual_max_t = max(actual_max_t, len(SW_distrib))
+		switching_time_distributions[:len(SW_distrib),k-2] = SW_distrib
+	if args.plot:
+		plt.figure()
+		plt.plot(switching_time_distributions[:actual_max_t,:])
+		plt.title('Analytic ST for various K')
+		plt.legend(['K = %d' % k for k in range(2, args.k_max+1)])
+		plt.xlabel('samples')
+		plt.ylabel('P(switch at t)')
+		plt.savefig('plots/analytic_ST_top.png')
+		plt.close()
 
-	# compare_empirical_analytic_switching_times(k_min=2, k_max=5)
-
-	# Tests with PLURALITY definition of switching
-	# net = k_deep_bistable(5, 0.96)
-	# S_start = sample_marginal_states(net, {}, 10000, conditional_fn=lambda net: plurality_state(net) == 0)
-	# import pdb; pdb.set_trace()
-	# distrib = sampled_switching_times_plurality(net, S_start, 1, trials=2000)
+	# Make plots of switching times (with percept defined as majority state)
+	switching_time_distributions = np.zeros((args.max_t, args.k_max-1))
+	actual_max_t = 0
+	for k in range(2, args.k_max+1):
+		print k
+		net = k_deep_bistable(k, args.p)
+		print '-transition-'
+		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		print '-init-'
+		S_init = analytic_recently_switched_states(net, plurality_state, 0, P)
+		print '-analytic st-'
+		SW_distrib = analytic_switching_times(net, S_init, (plurality_state, 1), transition=P, max_t=args.max_t)
+		actual_max_t = max(actual_max_t, len(SW_distrib))
+		switching_time_distributions[:len(SW_distrib),k-2] = SW_distrib
+	if args.plot:
+		plt.figure()
+		plt.plot(switching_time_distributions[:actual_max_t,:])
+		plt.title('Analytic ST for various K (majority percept)')
+		plt.legend(['K = %d' % k for k in range(2, args.k_max+1)])
+		plt.xlabel('samples')
+		plt.ylabel('P(switch at t)')
+		plt.savefig('plots/analytic_ST_majority.png')
+		plt.close()
 	
-	# plt.figure()
-	# plt.plot(distrib)
-	# plt.savefig('plurality1.png')
-	# plt.close()
-	pass
