@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--prob', dest='p', type=float, default=0.96)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
 parser.add_argument('--k', dest='K', type=int, default=6)
+parser.add_argument('--res', type=int, default=240)
 
 args = parser.parse_args()
 
@@ -59,7 +60,7 @@ vd_ax.set_xlim([0, t_end])
 vd_ax.set_ylim([0, 1.1])
 
 text_obj = net_ax.text(.005, 0, "sample 0", fontsize=24, verticalalignment='top')
-with writer.saving(fig, "mixing_time_animation.mp4", 100):
+with writer.saving(fig, "plots/mixing_time_animation.mp4", args.res):
 	for i in range(t_end+1):
 		print "writing frame", i
 		plot_net_layerwise(net, colors=mean_state(net, S[:,i]), ax=net_ax)
