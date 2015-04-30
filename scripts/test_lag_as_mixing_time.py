@@ -11,7 +11,7 @@ from counting import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
-parser.add_argument('--prob', dest='p', type=float, default=0.96)
+parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
 parser.add_argument('--k-max', dest='k_max', type=int, default=7)
@@ -26,9 +26,10 @@ layers = range(k_min, args.k_max+1)
 mixing_times = np.zeros(n_layers)
 for K in layers:
 	print K
-	net = m_deep_bistable(K, args.p)
+	net = m_deep_bistable(K, marg=args.marg)
 	ev = net.get_node_by_name('X1')
-	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+	p = ev.get_table()[0,0]
+	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
@@ -51,9 +52,10 @@ if args.plot:
 mixing_time_by_layer = np.zeros((n_layers, n_layers)) # mtbl[i,j] = time of node i when net has j total
 for K in layers:
 	print K
-	net = m_deep_bistable(K, args.p)
+	net = m_deep_bistable(K, marg=args.marg)
 	ev = net.get_node_by_name('X1')
-	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+	p = ev.get_table()[0,0]
+	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
