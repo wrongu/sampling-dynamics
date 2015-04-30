@@ -141,7 +141,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
-	parser.add_argument('--prob', dest='p', type=float, default=0.96)
+	parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 	parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
 	parser.add_argument('--k-max', dest='k_max', type=int, default=7)
 	parser.add_argument('--samples', dest='samples', type=int, default=5000)
@@ -151,13 +151,14 @@ if __name__ == '__main__':
 	# Make plots that verify 'analytic' switching time algorithm (compare with sampling)
 	for k in range(2, args.k_max+1):
 		print k
-		net = m_deep_bistable(k, args.p)
+		net = m_deep_bistable(k, marg=args.marg)
+		p = net.get_node_by_name('X1').get_table()[0]
 		nodes = net._nodes
 		print '-init-'
-		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		S_start = analytic_recently_switched_states(net, top_node_percept, 0, P)
 		print '-sample-'
-		empirical = load_or_run('sampled_switching_times_K%d_p%.3f' % (k, args.p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
+		empirical = load_or_run('sampled_switching_times_K%d_p%.3f' % (k, p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
 		print '-analytic-'
 		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=P, max_t=len(empirical))
 		
@@ -174,9 +175,10 @@ if __name__ == '__main__':
 	actual_max_t = 0
 	for k in range(2, args.k_max+1):
 		print k
-		net = m_deep_bistable(k, args.p)
+		net = m_deep_bistable(k, marg=args.marg)
+		p = net.get_node_by_name('X1').get_table()[0]
 		print '-transition-'
-		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
 		S_init = analytic_recently_switched_states(net, top_node_percept, 0, P)
 		print '-analytic st-'
@@ -199,9 +201,10 @@ if __name__ == '__main__':
 	actual_max_t = 0
 	for k in range(2, args.k_max+1):
 		print k
-		net = m_deep_bistable(k, args.p)
+		net = m_deep_bistable(k, marg=args.marg)
+		p = net.get_node_by_name('X1').get_table()[0]
 		print '-transition-'
-		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
 		S_init = analytic_recently_switched_states(net, plurality_state, 0, P)
 		print '-analytic st-'
