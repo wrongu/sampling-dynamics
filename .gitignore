@@ -1,5 +1,6 @@
 *.npy
 *.pyc
 *.png
+*.mp4
 writeup
 .DS_Store
