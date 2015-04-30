@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from util import load_or_run
 from counting import *
-from models import k_deep_bistable
+from models import m_deep_bistable
 from sampling import gibbs_sample
 import argparse
 
@@ -42,7 +42,7 @@ class SwitchedFunction(object):
 
 for K in range(2, args.k_max+1):
 	print K
-	net = k_deep_bistable(K, args.p)
+	net = m_deep_bistable(K, args.p)
 	N = count_states(net)
 	S = analytic_marginal_states(net)
 

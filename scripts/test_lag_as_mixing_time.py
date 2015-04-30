@@ -4,7 +4,7 @@ if __name__ == '__main__' and __package__ is None:
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-from models import k_deep_bistable
+from models import m_deep_bistable
 from visualize import plot_net_layerwise
 from util import load_or_run
 from counting import *
@@ -26,7 +26,7 @@ layers = range(k_min, args.k_max+1)
 mixing_times = np.zeros(n_layers)
 for K in layers:
 	print K
-	net = k_deep_bistable(K, args.p)
+	net = m_deep_bistable(K, args.p)
 	ev = net.get_node_by_name('X1')
 	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
@@ -51,7 +51,7 @@ if args.plot:
 mixing_time_by_layer = np.zeros((n_layers, n_layers)) # mtbl[i,j] = time of node i when net has j total
 for K in layers:
 	print K
-	net = k_deep_bistable(K, args.p)
+	net = m_deep_bistable(K, args.p)
 	ev = net.get_node_by_name('X1')
 	P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 

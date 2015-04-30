@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from graphical_models import DiscreteVariable, BayesNet
 from collections import defaultdict
-from models import k_deep_bistable
+from models import m_deep_bistable
 from util import load_or_run
 from sampling import *
 from counting import *
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 	# Make plots that verify 'analytic' switching time algorithm (compare with sampling)
 	for k in range(2, args.k_max+1):
 		print k
-		net = k_deep_bistable(k, args.p)
+		net = m_deep_bistable(k, args.p)
 		nodes = net._nodes
 		print '-init-'
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
@@ -174,7 +174,7 @@ if __name__ == '__main__':
 	actual_max_t = 0
 	for k in range(2, args.k_max+1):
 		print k
-		net = k_deep_bistable(k, args.p)
+		net = m_deep_bistable(k, args.p)
 		print '-transition-'
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
@@ -199,7 +199,7 @@ if __name__ == '__main__':
 	actual_max_t = 0
 	for k in range(2, args.k_max+1):
 		print k
-		net = k_deep_bistable(k, args.p)
+		net = m_deep_bistable(k, args.p)
 		print '-transition-'
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, args.p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from graphical_models import BayesNet, DiscreteVariable
 from sampling import gibbs_sample
-from models import k_deep_bistable, k_wide_bistable
+from models import m_deep_bistable, m_wide_bistable
 from util import load_or_run
 from counting import steady_state
 
@@ -15,7 +15,7 @@ def KL(p1, p2):
 	return np.dot(p1, np.log(p1 / p2))
 
 def test_deep_kl_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=100):
-	net = k_deep_bistable(k+1, p) # using k+1 since leaf node is used for evidence
+	net = m_deep_bistable(k+1, p) # using k+1 since leaf node is used for evidence
 
 	# compute steady state
 	model_nodes = net._nodes[:-1]
@@ -43,7 +43,7 @@ def test_deep_kl_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=1
 	return data
 
 def test_deep_likelihood_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=100):
-	net = k_deep_bistable(k+1, p)
+	net = m_deep_bistable(k+1, p)
 
 	# compute steady state
 	model_nodes = net._nodes[:-1]

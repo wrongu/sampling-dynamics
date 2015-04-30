@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as manimation
 from visualize import plot_net_layerwise
 import argparse
-from models import k_deep_bistable
+from models import m_deep_bistable
 from generators import alternator
 from sampling import gibbs_sample_dynamic_evidence
 from util import load_or_run
@@ -36,7 +36,7 @@ layers = range(k_min, args.k_max+1)
 
 for K in layers:
 	print K
-	net = k_deep_bistable(K, args.p)
+	net = m_deep_bistable(K, args.p)
 	ev_node = net.get_node_by_name('X1')
 
 	def sample_net_response():

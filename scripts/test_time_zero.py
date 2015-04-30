@@ -4,18 +4,18 @@ if __name__ == '__main__' and __package__ is None:
 import matplotlib.pyplot as plt
 from sys import argv
 from visualize import plot_net_layerwise
-from models import k_deep_bistable, k_wide_bistable
+from models import m_deep_bistable, m_wide_bistable
 from switching_times import sample_recently_switched_states, analytic_switching_times, sampled_switching_times
 from util import load_or_run
 from counting import *
 
-model = k_deep_bistable
+model = m_deep_bistable
 model_nm = 'deep'
 if '--model' in argv:
 	if len(argv) > argv.index('--model'):
 		m = argv[argv.index('--model')+1].lower() 
 		if m == 'wide':
-			model = k_wide_bistable
+			model = m_wide_bistable
 			model_nm = 'wide'
 
 for K in range(2,7):

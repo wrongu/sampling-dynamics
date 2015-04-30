@@ -54,8 +54,8 @@ if __name__ == '__main__':
 	from models import *
 	fig = plt.figure()
 	
-	net1 = k_deep_bistable(5, 0.9)
-	net2 = k_wide_bistable(5, 0.9)
+	net1 = m_deep_bistable(5, 0.9)
+	net2 = m_wide_bistable(5, 0.9)
 
 	fig.add_subplot(121)
 	plot_net_layerwise(net1)

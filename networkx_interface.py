@@ -24,8 +24,8 @@ if __name__ == '__main__':
 	plt.show()
 	plt.close()
 
-	from models import k_deep_bistable
-	net = k_deep_bistable(7, 0.96)
+	from models import m_deep_bistable
+	net = m_deep_bistable(7, 0.96)
 	g = net_to_digraph(net)
 	nx.draw(g)
 	plt.show()

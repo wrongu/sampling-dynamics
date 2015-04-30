@@ -9,7 +9,7 @@ import matplotlib.animation as manimation
 import argparse
 from counting import *
 from util import load_or_run
-from models import k_deep_bistable
+from models import m_deep_bistable
 from visualize import plot_net_layerwise
 
 parser = argparse.ArgumentParser()
@@ -26,7 +26,7 @@ writer = FFMpegWriter(fps=15, metadata=metadata)
 
 # see test_lag_as_mixing_time:
 K = args.K
-net = k_deep_bistable(K, args.p)
+net = m_deep_bistable(K, args.p)
 ev = net.get_node_by_name('X1')
 P = load_or_run('transition_matrix_K%d_p%.3f' % (K, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
