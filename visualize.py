@@ -1,10 +1,11 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.cm import ScalarMappable
 from collections import defaultdict
 from graphical_models import *
 from networkx_interface import net_to_digraph
 
-def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors={}, use_labels=True, ax=None, cmap='gist_heat'):
+def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors={}, use_labels=True, ax=None, cmap='gist_heat', cbar=False):
 	args = {
 		'ax' : ax,
 		'node_color' : colors,
@@ -42,6 +43,12 @@ def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors={}, use_labels=Tru
 	nx.draw_networkx(nxg, **args)
 	ax.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')
 	ax.tick_params(axis='y', which='both', left='off', right='off', labelleft='off')
+
+	if cbar:
+		color_map = ScalarMappable(cmap=cmap)
+		color_map.set_clim(vmin=0, vmax=1)
+		color_map.set_array(np.array([0,1]))
+		plt.colorbar(color_map, ax=ax)
 
 if __name__ == '__main__':
 	from models import *

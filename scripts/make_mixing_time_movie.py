@@ -55,7 +55,7 @@ net_ax = fig.add_subplot(2,1,1)
 vd_ax  = fig.add_subplot(2,1,2)
 vd_ax.set_title('Total Variational Distance')
 
-plot_net_layerwise(net, colors=mean_state(net, S[:,0]), ax=net_ax)
+plot_net_layerwise(net, colors=mean_state(net, S[:,0]), ax=net_ax, cbar=True)
 vd_line, = vd_ax.plot([],[],'-k')
 vd_ax.set_xlim([0, t_end])
 vd_ax.set_ylim([0, 1.1])
