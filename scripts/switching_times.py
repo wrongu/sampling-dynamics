@@ -187,12 +187,15 @@ if __name__ == '__main__':
 		switching_time_distributions[:len(SW_distrib),k-2] = SW_distrib
 	if args.plot:
 		plt.figure()
-		plt.plot(switching_time_distributions[:actual_max_t,:])
+		bar_width = 1. / (args.k_max-1)
+		colors = 'brgcmyk'
+		for i in range(2,args.k_max+1):
+			plt.bar(i*bar_width+np.arange(1,actual_max_t+1), switching_time_distributions[:actual_max_t,i-2],width=bar_width,color=colors[i-2])
 		plt.title('Analytic ST for various M')
 		plt.legend(['M = %d' % k for k in range(2, args.k_max+1)])
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
-		plt.xlim([0,60])
+		plt.xlim([0,20])
 		plt.savefig('plots/analytic_ST_top.png')
 		plt.close()
 
@@ -213,12 +216,15 @@ if __name__ == '__main__':
 		switching_time_distributions[:len(SW_distrib),k-2] = SW_distrib
 	if args.plot:
 		plt.figure()
-		plt.plot(switching_time_distributions[:actual_max_t,:])
+		bar_width = 1. / (args.k_max-1)
+		colors = 'brgcmyk'
+		for i in range(2,args.k_max+1):
+			plt.bar(i*bar_width+np.arange(1,actual_max_t+1), switching_time_distributions[:actual_max_t,i-2],width=bar_width,color=colors[i-2])
 		plt.title('Analytic ST for various M (majority percept)')
 		plt.legend(['M = %d' % k for k in range(2, args.k_max+1)])
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
-		plt.xlim([0,60])
+		plt.xlim([0,20])
 		plt.savefig('plots/analytic_ST_majority.png')
 		plt.close()
 	
