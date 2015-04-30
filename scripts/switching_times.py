@@ -152,7 +152,7 @@ if __name__ == '__main__':
 	for k in range(2, args.k_max+1):
 		print k
 		net = m_deep_bistable(k, marg=args.marg)
-		p = net.get_node_by_name('X1').get_table()[0]
+		p = net.get_node_by_name('X1').get_table()[0,0]
 		nodes = net._nodes
 		print '-init-'
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
@@ -176,7 +176,7 @@ if __name__ == '__main__':
 	for k in range(2, args.k_max+1):
 		print k
 		net = m_deep_bistable(k, marg=args.marg)
-		p = net.get_node_by_name('X1').get_table()[0]
+		p = net.get_node_by_name('X1').get_table()[0,0]
 		print '-transition-'
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
@@ -202,7 +202,7 @@ if __name__ == '__main__':
 	for k in range(2, args.k_max+1):
 		print k
 		net = m_deep_bistable(k, marg=args.marg)
-		p = net.get_node_by_name('X1').get_table()[0]
+		p = net.get_node_by_name('X1').get_table()[0,0]
 		print '-transition-'
 		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
