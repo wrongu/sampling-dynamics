@@ -42,6 +42,7 @@ if args.plot:
 	ax = fig.add_subplot(1,1,1)
 	plt.plot(layers, mixing_times, '-bo')
 	ax.set_xlim([0,args.k_max+1])
+	ax.set_ylim([0,40])
 	plt.xlabel('model depth')
 	plt.ylabel('mixing time (samples to variational distance < eps)')
 	plt.title('Mixing Time as a funciton of depth')
@@ -84,6 +85,7 @@ if args.plot:
 	for K in layers:
 		ax.plot(np.arange(K,args.k_max+1), mixing_time_by_layer[K-2:n_layers,K-2],'-o')
 	plt.title('Mixing Time (per layer) as a function of depth')
+	ax.set_ylim([0,40])
 	plt.xlabel('model depth')
 	plt.ylabel('mixing time (samples to variational distance < eps)')
 	plt.legend(['X%d' % K for K in layers], loc='upper left')
