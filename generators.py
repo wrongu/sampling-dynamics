@@ -1,9 +1,10 @@
 import random
 
-def alternator(states):
+def alternator(states, period=1):
 	while True:
 		for s in states:
-			yield s
+			for _ in xrange(period):
+				yield s
 
 def rand(states):
 	while True:

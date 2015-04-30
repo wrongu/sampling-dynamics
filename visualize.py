@@ -36,7 +36,8 @@ def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors={}, use_labels=Tru
 		labels = {n:n.get_name() for n in net.iter_nodes()}
 		args['labels'] = labels
 
-	if ax is None: del args['ax']
+	if ax is None:
+		ax = plt.figure().add_subplot(1,1,1)
 	nxg = net_to_digraph(net)
 	nx.draw_networkx(nxg, **args)
 	ax.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')

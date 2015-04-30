@@ -159,6 +159,10 @@ class BayesNet(DiGraph):
 
 		# note: no learning is done by the network, otherwise it would be here
 
+	def evidence_from_vector(self, values_vec, learn=False):
+		for (n,v) in zip(self._nodes, values_vec):
+			n.set_value(v)
+
 	def probability(self, conditioned_on={}):
 		"""compute probability of current state"""
 		# TODO normalize over conditioned_on=all other states??
