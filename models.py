@@ -4,10 +4,46 @@ import itertools
 from graphs import Graph, DiGraph
 from graphical_models import BayesNet, DiscreteVariable
 
-def m_deep_bistable(m, p):
+def m_deep_bistable(m, p=None, marg=None):
 	"""constructs a simple bayes net with binary variables in m layers,
 	where each is a likely cause of the earlier (0 causes 0) with probability p
+
+	if p is not given (but marg must be), then p is chosen such that the marginal P(Xm|X1) is marg
 	"""
+
+	if p is None:
+		if marg is None:
+			print "Either p OR marg must be specified"
+			import sys; sys.exit(1)
+		else:
+			# TODO compute rahter than lookup
+			lookup = {
+				.7 : {
+					2: 0.816228,
+					3: 0.868403,
+					4: 0.897635,
+					5: 0.916277,
+					6: 0.929187,
+					7: 0.938653
+				}, .8 : {
+					2: 0.887298,
+					3: 0.921716,
+					4: 0.940056,
+					5: 0.951440,
+					6: 0.959193,
+					7: 0.964812
+				}, .9 : {
+					2: 0.947214,
+					3: 0.964159,
+					4: 0.972871,
+					5: 0.978176,
+					6: 0.981746,
+					7: 0.984313
+				}
+			}
+			if marg in lookup and m in lookup[marg]:
+				p = lookup[marg][m]
+
 	net = BayesNet()
 	top_layer = DiscreteVariable([0,1], tbl=np.array([0.5, 0.5]), name="X%d"%m)
 	net.add_node(top_layer)
