@@ -186,10 +186,11 @@ if __name__ == '__main__':
 	if args.plot:
 		plt.figure()
 		plt.plot(switching_time_distributions[:actual_max_t,:])
-		plt.title('Analytic ST for various K')
-		plt.legend(['K = %d' % k for k in range(2, args.k_max+1)])
+		plt.title('Analytic ST for various M')
+		plt.legend(['M = %d' % k for k in range(2, args.k_max+1)])
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
+		plt.xlim([0,60])
 		plt.savefig('plots/analytic_ST_top.png')
 		plt.close()
 
@@ -210,10 +211,11 @@ if __name__ == '__main__':
 	if args.plot:
 		plt.figure()
 		plt.plot(switching_time_distributions[:actual_max_t,:])
-		plt.title('Analytic ST for various K (majority percept)')
-		plt.legend(['K = %d' % k for k in range(2, args.k_max+1)])
+		plt.title('Analytic ST for various M (majority percept)')
+		plt.legend(['M = %d' % k for k in range(2, args.k_max+1)])
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
+		plt.xlim([0,60])
 		plt.savefig('plots/analytic_ST_majority.png')
 		plt.close()
 	
