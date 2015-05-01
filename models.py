@@ -4,6 +4,37 @@ import itertools
 from graphs import Graph, DiGraph
 from graphical_models import BayesNet, DiscreteVariable
 
+def compute_p_for_given_marginal(m, marg):
+	"""In some cases where m_deep_bistable is used, we want P(Xm|X1) to be the same
+	across values of m. This function takes in m and P(Xm|X1) (called 'marg') and returns p
+
+	The reason to hold 'marg' rather than 'p' constant is that if p is constant and m grows,
+	the "vanishing correlation" effect dominates, and P(Xm|X1) approaches 50/50, making most
+	comparisons meaningless
+	"""
+
+	# find p such that the recursively defined polynomial f(p,m) = marg
+	# f(0) = 1
+	# f(p,m) = p*f(p,m-1) + (1-p)*(1-f(p,m-1))
+	# (intuitively, marginal that layer K = 0 is P(layer k-1=0)P(0->0) + P(layer k-1=1)P(1->0))
+
+	polynomial = np.zeros(m+1)
+	polynomial[-1] = 1
+
+	for i in range(m):
+		# rearraning f(p,m) = p*f(p,m-1) + (1-p)*(1-f(p,m-1)),
+		# we get f(p,m) = 2*p*f(p,m-1) - f(p,m-1) - p + 1
+		new_polynomial = np.zeros(m+1)
+		new_polynomial[:-1] = 2 * polynomial[1:] # 2*p*f term
+		new_polynomial -= polynomial # - f term
+		new_polynomial[-2] -= 1 # -p term
+		new_polynomial[-1] += 1 # +1 term
+		polynomial = new_polynomial
+
+	polynomial[-1] -= marg # f(p,m) - marg = 0
+	roots = np.roots(polynomial)
+	return np.real(roots[0])
+
 def m_deep_bistable(m, p=None, marg=None):
 	"""constructs a simple bayes net with binary variables in m layers,
 	where each is a likely cause of the earlier (0 causes 0) with probability p
@@ -16,33 +47,7 @@ def m_deep_bistable(m, p=None, marg=None):
 			print "Either p OR marg must be specified"
 			import sys; sys.exit(1)
 		else:
-			# TODO compute rahter than lookup
-			lookup = {
-				.7 : {
-					2: 0.816228,
-					3: 0.868403,
-					4: 0.897635,
-					5: 0.916277,
-					6: 0.929187,
-					7: 0.938653
-				}, .8 : {
-					2: 0.887298,
-					3: 0.921716,
-					4: 0.940056,
-					5: 0.951440,
-					6: 0.959193,
-					7: 0.964812
-				}, .9 : {
-					2: 0.947214,
-					3: 0.964159,
-					4: 0.972871,
-					5: 0.978176,
-					6: 0.981746,
-					7: 0.984313
-				}
-			}
-			if marg in lookup and m in lookup[marg]:
-				p = lookup[marg][m]
+			p = compute_p_for_given_marginal(m, marg)
 
 	net = BayesNet()
 	top_layer = DiscreteVariable([0,1], tbl=np.array([0.5, 0.5]), name="X%d"%m)
@@ -102,3 +107,10 @@ def erdos_renyi(n, p):
 		if random.random() < p:
 			g.add_edge(g.get_node_by_name(str(i)),g.get_node_by_name(str(j)))
 	return g
+
+if __name__ == '__main__':
+	# test compute_p_for_given_marginal
+	for marg in [.7,.8,.9]:
+		print marg
+		for m in range(2,8):
+			print '  ', m, compute_p_for_given_marginal(m, marg)
