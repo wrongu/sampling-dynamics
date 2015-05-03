@@ -96,15 +96,18 @@ def set_transition_matrix_evidence(net, P, conditioned_on={}):
 	
 		(saves having to recompute from scratch using conditioned_on)
 	"""
-	# get ids where conditioned_on does *not* hold
-	invalid_ids = id_subset(net, where=lambda net: not net.is_consistent_with_evidence(conditioned_on))
-	# cannot transition into invalid state
-	P[invalid_ids,:] = 0.
+	for n,v in conditioned_on.iteritems():
+		correct_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:v}))
+		for s in n._states:
+			if s != v:
+				incorrect_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:s}))
+				# can't transition into invalid state
+				P[incorrect_ids, :] = 0.
+				# treat transitioning out of incorrect state as if already in {n:v}
+				P[:, incorrect_ids] = P[:, correct_ids]
 	# renormalize
 	for i in range(len(P)):
 		P[:,i] /= P[:,i].sum()
-	print "check that P with evidence is correct"
-	import pdb; pdb.set_trace()
 	return P
 
 def steady_state(net, evidence, nodes, eps=0, K=10000, burnin=100):
