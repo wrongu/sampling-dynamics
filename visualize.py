@@ -5,7 +5,9 @@ from collections import defaultdict
 from graphical_models import *
 from networkx_interface import net_to_digraph
 
-def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors={}, use_labels=True, ax=None, cmap='gist_heat', cbar=False):
+def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors=[], use_labels=True, ax=None, cmap='gist_heat', cbar=False):
+	if not colors:
+		colors = [1] * net.size()
 	args = {
 		'ax' : ax,
 		'node_color' : colors,
