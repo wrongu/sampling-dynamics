@@ -119,5 +119,8 @@ class DiGraph(Graph):
 		re[n1] = obj
 		self._reverse_edges[n2] = re
 
+	def parents(self, n):
+		return self._reverse_edges.get(n,{}).keys()
+
 	def get_roots(self):
 		return [n for n in self.iter_nodes() if len(self._reverse_edges[n]) == 0]

@@ -66,7 +66,20 @@ def m_deep_with_shortcut(m, p=None, marg=None, fro=None, to=None, cpt='marginal'
 		net.bfs_traverse([fro], store_dists)
 		marg = compute_marginal_for_given_p(dists[to], p)
 		cpt = np.array([[marg, 1-marg], [1-marg, marg]])
-	net.cpt([fro, to], cpt)
+
+	prev_table = to.get_table()
+	prev_parents = net.parents(to)
+	# making room for a new binary parent
+	shape = tuple([2] + list(prev_table.shape))
+	table = np.zeros(shape)
+	# populate new table such that P(to|parents,fro)=P(to|fro)P(to|parents)
+	table[0,...,0] = prev_table[:,0] * cpt[0,0];
+	table[0,...,1] = prev_table[:,1] * cpt[0,1];
+	table[1,...,0] = prev_table[:,0] * cpt[1,0];
+	table[1,...,1] = prev_table[:,1] * cpt[1,1];
+	import pdb; pdb.set_trace()
+
+	net.cpt([fro] + prev_parents + [to], table)
 	return net
 
 def m_deep_bistable(m, p=None, marg=None):
