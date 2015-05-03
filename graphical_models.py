@@ -163,6 +163,11 @@ class BayesNet(DiGraph):
 		for (n,v) in zip(self._nodes, values_vec):
 			n.set_value(v)
 
+	def is_consistent_with_evidence(self, evidence):
+		for n,v in evidence.iteritems():
+			if n.get_value() != v: return False
+		return True
+
 	def probability(self, conditioned_on={}):
 		"""compute probability of current state"""
 		# TODO normalize over conditioned_on=all other states??
