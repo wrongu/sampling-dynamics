@@ -44,8 +44,7 @@ def m_deep_bistable(m, p=None, marg=None):
 
 	if p is None:
 		if marg is None:
-			print "Either p OR marg must be specified"
-			import sys; sys.exit(1)
+			raise AssertionError("Either p OR marg must be specified")
 		else:
 			p = compute_p_for_given_marginal(m, marg)
 
