@@ -35,6 +35,40 @@ def compute_p_for_given_marginal(m, marg):
 	roots = np.roots(polynomial)
 	return np.real(roots[0])
 
+def compute_marginal_for_given_p(m, p):
+	marg = 1.
+	for _ in range(m):
+		marg = p*marg + (1-p)*(1-marg)
+	return marg
+
+def m_deep_with_shortcut(m, p=None, marg=None, fro=None, to=None, cpt='marginal'):
+	"""constructs an m_deep_bistable model with a single additional connection from node 'fro' to node 'to'
+
+	(fro must be greater than to to prevent cycles)
+	"""
+	net = m_deep_bistable(m, p, marg)
+	if type(fro) is int:
+		fro = 'X%d' % fro
+	if type(to) is int:
+		to = 'X%d' % to
+	fro = net.get_node_by_name(fro)
+	to = net.get_node_by_name(to)
+
+	if cpt is 'random':
+		cpt = np.random.random((2,2))
+		sums = cpt.sum(axis=0)
+		cpt[:,0] /= sums[0]
+		cpt[:,1] /= sums[1]
+	elif cpt is 'marginal':
+		if p is None: p = net.get_node_by_name('X1').get_table()[0,0]
+		dists = {}
+		def store_dists(n,d): dists[n] = d
+		net.bfs_traverse([fro], store_dists)
+		marg = compute_marginal_for_given_p(dists[to], p)
+		cpt = np.array([[marg, 1-marg], [1-marg, marg]])
+	net.cpt([fro, to], cpt)
+	return net
+
 def m_deep_bistable(m, p=None, marg=None):
 	"""constructs a simple bayes net with binary variables in m layers,
 	where each is a likely cause of the earlier (0 causes 0) with probability p
