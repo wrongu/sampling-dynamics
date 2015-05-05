@@ -56,16 +56,42 @@ for i,dep in enumerate(dependencies):
 	print 'dep', dep, mixing_times[i]
 
 if args.plot:
+	from visualize import plot_net_layerwise
+	# plot model
 	fig = plt.figure()
 	ax = fig.add_subplot(1,1,1)
-	plt.plot(dependencies[:-1], mixing_times[:-1], '-bo')
+	node_positions = {
+		net._nodes[0] : (0,5),
+		net._nodes[1] : (0,4),
+		net._nodes[2] : (.5,3),
+		net._nodes[3] : (.5,2),
+		net._nodes[4] : (0,1),
+		net._nodes[5] : (0,0),
+	}
+	plot_net_layerwise(net, ax=ax, positions=node_positions, x_spacing=.5, y_spacing=1)
+	plt.savefig("plots/model_shortcut.png")
+	plt.close()
 
-	plt.plot([0.5,1.0], [mixing_time_baseline]*2, '--k')
+	# plot mixing times
+	fig = plt.figure()
+	ax = fig.add_subplot(1,1,1)
 
 	marg_x = compute_marginal_for_given_p(args.fro-args.to, p)
-	plt.plot([0.5,1.0], [mixing_time_marginal]*2, '--r')
-	plt.plot([marg_x]*2, ax.get_ylim(), '--r')
+	idx = np.searchsorted(dependencies, marg_x)
+	dependencies = np.insert(dependencies, idx, marg_x)
+	mixing_times = np.insert(mixing_times, idx, mixing_time_marginal)
 
+	ax.plot([0.5,1.0], [mixing_time_baseline]*2, '--k')
+	ax.plot(dependencies[:-1], mixing_times[:-1], '-bo')
+	ax.plot(marg_x, mixing_time_marginal, 'ro')
+
+	plt.title('Effect of X2-X5 Shortcut on Mixing Times')
+	plt.xlabel('strength of dependency P(X2 = X5)')
+	plt.ylabel('Mixing Time')
+	plt.legend(['no shortcut', 'shortcut'], loc='lower right')
+
+	yl = ax.get_ylim()
+	ax.set_ylim([0,yl[1]+5])
 	plt.savefig('plots/shortcut_mixing_time.png')
 	plt.close()
 

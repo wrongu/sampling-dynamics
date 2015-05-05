@@ -5,7 +5,7 @@ from collections import defaultdict
 from graphical_models import *
 from networkx_interface import net_to_digraph
 
-def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors=[], use_labels=True, ax=None, cmap='gist_heat', cbar=False):
+def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors=[], use_labels=True, ax=None, cmap='gist_heat', cbar=False, positions={}):
 	if not colors:
 		colors = [1] * net.size()
 	args = {
@@ -17,22 +17,23 @@ def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors=[], use_labels=Tru
 		'cmap' : cmap
 	}
 
-	# compute layer-wise positions of nodes (distance from roots)
-	nodes_by_layer = defaultdict(lambda: [])
-	def add_to_layer(n,l):
-		nodes_by_layer[l].append(n)
-	net.bfs_traverse(net.get_roots(), add_to_layer)
+	if not positions:
+		# compute layer-wise positions of nodes (distance from roots)
+		nodes_by_layer = defaultdict(lambda: [])
+		def add_to_layer(n,l):
+			nodes_by_layer[l].append(n)
+		net.bfs_traverse(net.get_roots(), add_to_layer)
 
 
-	positions = {}
-	for l, nodes in nodes_by_layer.iteritems():
-		y = -l*y_spacing
-		# reorder layer lexicographically
-		nodes.sort(key=lambda n: n.get_name())
-		width = (len(nodes)-1) * x_spacing
-		for i,n in enumerate(nodes):
-			x = x_spacing*i - width/2
-			positions[n] = (x,y)
+		positions = {}
+		for l, nodes in nodes_by_layer.iteritems():
+			y = -l*y_spacing
+			# reorder layer lexicographically
+			nodes.sort(key=lambda n: n.get_name())
+			width = (len(nodes)-1) * x_spacing
+			for i,n in enumerate(nodes):
+				x = x_spacing*i - width/2
+				positions[n] = (x,y)
 	args['pos'] = positions
 
 	if use_labels:
@@ -45,12 +46,19 @@ def plot_net_layerwise(net, x_spacing=5, y_spacing=10, colors=[], use_labels=Tru
 	nx.draw_networkx(nxg, **args)
 	ax.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')
 	ax.tick_params(axis='y', which='both', left='off', right='off', labelleft='off')
-
+	
 	if cbar:
 		color_map = ScalarMappable(cmap=cmap)
 		color_map.set_clim(vmin=0, vmax=1)
 		color_map.set_array(np.array([0,1]))
 		plt.colorbar(color_map, ax=ax)
+
+	ax.set_aspect('equal')
+	# zoom out slightly to avoid cropping issues with nodes
+	xl = ax.get_xlim()
+	yl = ax.get_ylim()
+	ax.set_xlim(xl[0]-x_spacing/2, xl[1]+x_spacing/2)
+	ax.set_ylim(yl[0]-y_spacing/2, yl[1]+y_spacing/2)
 
 if __name__ == '__main__':
 	from models import *
