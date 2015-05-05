@@ -77,7 +77,6 @@ def m_deep_with_shortcut(m, p=None, marg=None, fro=None, to=None, cpt='marginal'
 	table[0,...,1] = prev_table[:,1] * cpt[0,1];
 	table[1,...,0] = prev_table[:,0] * cpt[1,0];
 	table[1,...,1] = prev_table[:,1] * cpt[1,1];
-	import pdb; pdb.set_trace()
 
 	net.cpt([fro] + prev_parents + [to], table)
 	return net
