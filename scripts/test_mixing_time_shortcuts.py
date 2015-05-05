@@ -3,7 +3,7 @@ if __name__ == '__main__' and __package__ is None:
 
 import numpy as np
 import matplotlib.pyplot as plt
-from models import m_deep_with_shortcut, m_deep_bistable
+from models import m_deep_with_shortcut, m_deep_bistable, compute_marginal_for_given_p
 from util import load_or_run
 from counting import *
 import argparse
@@ -57,7 +57,15 @@ for i,dep in enumerate(dependencies):
 
 if args.plot:
 	fig = plt.figure()
-	ax = plt.add_subplot(1,1,1)
-	plt.plot(dependencies, mixing_times, '-bo')
-	plt.line([0.5,1.0], mixing_time_baseline, '--k')
-	plt.plot([0.5,1.0], mixing_time_marginal, '--r')
+	ax = fig.add_subplot(1,1,1)
+	plt.plot(dependencies[:-1], mixing_times[:-1], '-bo')
+
+	plt.plot([0.5,1.0], [mixing_time_baseline]*2, '--k')
+
+	marg_x = compute_marginal_for_given_p(args.fro-args.to, p)
+	plt.plot([0.5,1.0], [mixing_time_marginal]*2, '--r')
+	plt.plot([marg_x]*2, ax.get_ylim(), '--r')
+
+	plt.savefig('plots/shortcut_mixing_time.png')
+	plt.close()
+
