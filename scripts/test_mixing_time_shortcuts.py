@@ -11,6 +11,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', action='store_true', default=False)
 parser.add_argument('--steps', dest='steps', type=int, default=12)
+parser.add_argument('--q-min', dest='q_min', type=float, default=0.5)
+parser.add_argument('--q-max', dest='q_max', type=float, default=1.0)
 parser.add_argument('--eps', dest='eps', type=float, default=.05)
 parser.add_argument('--depth', dest='m', type=int, default=6)
 parser.add_argument('--marg', dest='marg', type=float, default=0.9)
@@ -47,7 +49,7 @@ mixing_time_marginal = get_mixing_time(net_marginal, 'marginal')
 print 'marginal', mixing_time_marginal
 
 # get results for varying fro-to dependencies
-dependencies = np.linspace(0.5, 1.0, args.steps)
+dependencies = np.linspace(args.q_min, args.q_max, args.steps)
 mixing_times = np.zeros(args.steps)
 for i,dep in enumerate(dependencies):
 	cpt = np.array([[dep, 1-dep],[1-dep, dep]])
