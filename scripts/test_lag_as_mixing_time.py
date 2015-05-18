@@ -29,13 +29,13 @@ for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
-	P = load_or_run('transition_matrix_M%d_p%.3f' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+	A = load_or_run('transition_matrix_M%d_p%.3f' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
-	mixing_times[M-m_min], _ = mixing_time(S_start, S_target, P, eps=args.eps)
+	mixing_times[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps)
 
 if args.plot:
 	fig = plt.figure()
@@ -56,7 +56,7 @@ for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
-	P = load_or_run('transition_matrix_M%d_p%.3f' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+	A = load_or_run('transition_matrix_M%d_p%.3f' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
@@ -73,7 +73,7 @@ for M in layers:
 		i = 0
 		while d > args.eps and i < max_t-1:
 			i += 1
-			S = np.dot(P, S)
+			S = np.dot(A, S)
 			marg = node_marginal(net, S, node)
 			d = variational_distance(marg, node_marginal_target)
 

@@ -80,19 +80,19 @@ def construct_markov_transition_matrix(net, conditioned_on={}):
 		if ans[0] not in "yY":
 			return
 
-	P = np.zeros((n_states, n_states))
+	A = np.zeros((n_states, n_states))
 
 	orderings = itertools.permutations(enumerate(net.iter_nodes()))
 	u = 1.0 / fact(len(net._nodes))
 	for ns in orderings:
 		for i,j in itertools.product(range(n_states), range(n_states)):
-			P[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on)
+			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on)
 
 	net.evidence(tmp)
-	return P
+	return A
 
-def set_transition_matrix_evidence(net, P, conditioned_on={}):
-	"""given an unconstrained transition matrix P, simply modify it based on evidence in conditioned_on
+def set_transition_matrix_evidence(net, A, conditioned_on={}):
+	"""given an unconstrained transition matrix A, simply modify it based on evidence in conditioned_on
 	
 		(saves having to recompute from scratch using conditioned_on)
 	"""
@@ -102,13 +102,13 @@ def set_transition_matrix_evidence(net, P, conditioned_on={}):
 			if s != v:
 				incorrect_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:s}))
 				# can't transition into invalid state
-				P[incorrect_ids, :] = 0.
+				A[incorrect_ids, :] = 0.
 				# treat transitioning out of incorrect state as if already in {n:v}
-				P[:, incorrect_ids] = P[:, correct_ids]
+				A[:, incorrect_ids] = A[:, correct_ids]
 	# renormalize
 	for i in range(len(P)):
-		P[:,i] /= P[:,i].sum()
-	return P
+		A[:,i] /= A[:,i].sum()
+	return A
 
 def steady_state(net, evidence, nodes, eps=0, M=10000, burnin=100):
 	"""computes steady state distribution for each node
@@ -186,7 +186,7 @@ def variational_distance(P1, P2):
 	return 0.5 * np.abs(P1 - P2).sum()
 
 def mixing_time(start, target, transition, eps=0.05, max_t=1000):
-	# Using markov transition matrix P, loop until `start` converges to within `eps` of `target`
+	# Using markov transition matrix A, loop until `start` converges to within `eps` of `target`
 	S = start
 	i = 0
 	vds = np.zeros(max_t)

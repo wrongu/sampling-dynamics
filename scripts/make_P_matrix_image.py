@@ -9,10 +9,10 @@ from util import load_or_run
 m = 3
 p = .964
 
-P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net))
+A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net))
 
 plt.figure()
-plt.imshow(P, interpolation='nearest')
+plt.imshow(A, interpolation='nearest')
 plt.colorbar()
-plt.savefig('plots/P_matrix_m%d_p%.3f.png' % (m,p))
+plt.savefig('plots/A_matrix_m%d_p%.3f.png' % (m,p))
 plt.close()
