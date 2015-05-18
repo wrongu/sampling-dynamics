@@ -38,9 +38,9 @@ p = ev.get_table()[0,0]
 P = load_or_run('transition_matrix_K%d_p%.3f' % (args.m, p),
 	lambda: construct_markov_transition_matrix(net_baseline),
 	force_recompute=args.recompute)
-S_start  = analytic_marginal_states(net_baseline, conditioned_on={ev: 0})
-S_target = analytic_marginal_states(net_baseline, conditioned_on={ev: 1})
-mixing_time_baseline, _ = mixing_time(S_start, S_target, P, eps=args.eps)
+S_start_baseline  = analytic_marginal_states(net_baseline, conditioned_on={ev: 0})
+S_target_baseline = analytic_marginal_states(net_baseline, conditioned_on={ev: 1})
+mixing_time_baseline, _ = mixing_time(S_start_baseline, S_target_baseline, P, eps=args.eps)
 print 'baseline', mixing_time_baseline
 
 # second data point: shortcut uses marginal distribution
@@ -49,7 +49,7 @@ mixing_time_marginal = get_mixing_time(net_marginal, 'marginal')
 print 'marginal', mixing_time_marginal
 
 # get results for varying fro-to dependencies
-dependencies = np.linspace(args.q_min, args.q_max, args.steps)
+dependencies = np.linspace(args.q_min, args.q_max, args.steps) # AKA 'q'
 mixing_times = np.zeros(args.steps)
 for i,dep in enumerate(dependencies):
 	cpt = np.array([[dep, 1-dep],[1-dep, dep]])
@@ -74,26 +74,40 @@ if args.plot:
 	plt.savefig("plots/model_shortcut.png")
 	plt.close()
 
-	# plot mixing times
 	fig = plt.figure()
-	ax = fig.add_subplot(1,1,1)
+
+	# plot mixing times
+	ax = fig.add_subplot(2,1,1)
 
 	marg_x = compute_marginal_for_given_p(args.fro-args.to, p)
 	idx = np.searchsorted(dependencies, marg_x)
 	dependencies = np.insert(dependencies, idx, marg_x)
 	mixing_times = np.insert(mixing_times, idx, mixing_time_marginal)
 
-	ax.plot([0.5,1.0], [mixing_time_baseline]*2, '--k')
+	ax.plot([args.q_min,args.q_max], [mixing_time_baseline]*2, '--k')
 	ax.plot(dependencies[:-1], mixing_times[:-1], '-bo')
 	ax.plot(marg_x, mixing_time_marginal, 'ro')
 
 	plt.title('Effect of X2-X5 Shortcut on Mixing Times')
-	plt.xlabel('strength of dependency P(X2 = X5)')
 	plt.ylabel('Mixing Time')
-	plt.legend(['no shortcut', 'shortcut'], loc='lower right')
+	plt.legend(['no shortcut', 'shortcut'], loc='upper right')
 
 	yl = ax.get_ylim()
 	ax.set_ylim([0,yl[1]+5])
+
+	# plot TVD as function of q
+	ax = fig.add_subplot(2,1,2)
+	tvds = np.zeros(len(dependencies))
+	for i,dep in enumerate(dependencies):
+		cpt = np.array([[dep, 1-dep],[1-dep, dep]])
+		net = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt=cpt)
+		ev = net.get_node_by_name('X1')
+		tvds[i] = variational_distance(S_target_baseline, analytic_marginal_states(net, conditioned_on={ev: 1}))
+	plt.plot(dependencies, tvds, '-ok')
+	plt.title('Change in Posterior Varying q')
+	plt.xlabel('q')
+	plt.ylabel('TVD(S_q, S_baseline)')
+
 	plt.savefig('plots/shortcut_mixing_time.png')
 	plt.close()
 
