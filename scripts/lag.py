@@ -14,8 +14,8 @@ def KL(p1, p2):
 	probability vectors of the same length)"""
 	return np.dot(p1, np.log(p1 / p2))
 
-def test_deep_kl_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=100):
-	net = m_deep_bistable(k+1, p) # using k+1 since leaf node is used for evidence
+def test_deep_kl_lag(m, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=100):
+	net = m_deep_bistable(m+1, p) # using m+1 since leaf node is used for evidence
 
 	# compute steady state
 	model_nodes = net._nodes[:-1]
@@ -23,7 +23,7 @@ def test_deep_kl_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=1
 	ss_distributions = steady_state(net, {evidence_node : 1}, model_nodes, eps)
 
 	# accumulate data (KL divergence) in nodes x time_steps x trials
-	data = np.zeros((k, n_samples, trials))
+	data = np.zeros((m, n_samples, trials))
 
 	for t in range(trials):
 		counts = {node: eps * np.ones(node.size()) for node in model_nodes}
@@ -42,8 +42,8 @@ def test_deep_kl_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=1
 
 	return data
 
-def test_deep_likelihood_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=100):
-	net = m_deep_bistable(k+1, p)
+def test_deep_likelihood_lag(m, p=.99, trials=100, eps=1e-3, n_samples=300, pre_burnin=100):
+	net = m_deep_bistable(m+1, p)
 
 	# compute steady state
 	model_nodes = net._nodes[:-1]
@@ -51,7 +51,7 @@ def test_deep_likelihood_lag(k, p=.99, trials=100, eps=1e-3, n_samples=300, pre_
 	ss_distributions = steady_state(net, {evidence_node : 1}, model_nodes, eps)
 
 	# accumulate data (sample likelihood) in nodes x time_steps x trials
-	data = np.zeros((k-1, n_samples, trials))
+	data = np.zeros((m-1, n_samples, trials))
 
 	for t in range(trials):
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 	parser.add_argument('--prob', type=float, default=0.9)
 	parser.add_argument('--trials', type=int, default=300)
 	parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
-	parser.add_argument('--k-max', dest='k_max', type=int, default=7)
+	parser.add_argument('--m-max', dest='m_max', type=int, default=7)
 
 	args = parser.parse_args()
 
@@ -85,14 +85,14 @@ if __name__ == '__main__':
 	prob = args.prob
 	trials = args.trials
 	plot = args.plot
-	k_max = args.k_max
+	m_max = args.m_max
 
 	# KL Divergence Test
-	for k in range(2,k_max+1):
-		print k
+	for m in range(2,m_max+1):
+		print m
 
-		filename = 'test_deep_kl_lag[%d].npy' % k
-		data = load_or_run(filename, lambda: test_deep_kl_lag(k, trials=trials, n_samples=samples, p=prob), force_recompute=recompute)
+		filename = 'test_deep_kl_lag[%d].npy' % m
+		data = load_or_run(filename, lambda: test_deep_kl_lag(m, trials=trials, n_samples=samples, p=prob), force_recompute=recompute)
 
 		if plot:
 			# get mean over trials
@@ -104,16 +104,16 @@ if __name__ == '__main__':
 			# plot in reverse since data[0] is 'top' layer
 			for layer in range(data.shape[0]+1, 1, -1):
 				plt.errorbar(range(samples), mean[layer-2,:].transpose(), variance[layer-2,:].transpose())
-			plt.legend(['layer %d' % l for l in range(2,k+1)])
-			plt.savefig('results_KL_k=%d.png' % k)
+			plt.legend(['layer %d' % l for l in range(2,m+1)])
+			plt.savefig('results_KL_m=%d.png' % m)
 			plt.close()
 
 	# Likelihood Test
-	for k in range(2,k_max+1):
-		print k
+	for m in range(2,m_max+1):
+		print m
 
-		filename = 'test_deep_likelihood_lag[%d].npy' % k
-		data = load_or_run(filename, lambda: test_deep_likelihood_lag(k, trials=trials, n_samples=samples, p=prob), force_recompute=recompute)
+		filename = 'test_deep_likelihood_lag[%d].npy' % m
+		data = load_or_run(filename, lambda: test_deep_likelihood_lag(m, trials=trials, n_samples=samples, p=prob), force_recompute=recompute)
 
 		# first, normalize each trajectory of likelihoods to fill the [0,1] range
 		# (if Likelihood of samples varies between {0.3,0.7} for one node and {0.1,0.9} for another,
@@ -137,7 +137,7 @@ if __name__ == '__main__':
 			# plot in reverse since data[0] is 'top' layer
 			for layer in range(data.shape[0]+1, 1, -1):
 				plt.errorbar(range(samples), mean[layer-2,:].transpose(), variance[layer-2,:].transpose())
-			plt.legend(['layer %d' % l for l in range(2,k+1)])
-			plt.savefig('results_likelihood_k=%d.png' % k)
+			plt.legend(['layer %d' % l for l in range(2,m+1)])
+			plt.savefig('results_likelihood_m=%d.png' % m)
 			plt.close()
 

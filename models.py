@@ -17,7 +17,7 @@ def compute_p_for_given_marginal(m, marg):
 	# find p such that the recursively defined polynomial f(p,m) = marg
 	# f(0) = 1
 	# f(p,m) = p*f(p,m-1) + (1-p)*(1-f(p,m-1))
-	# (intuitively, marginal that layer K = 0 is P(layer k-1=0)P(0->0) + P(layer k-1=1)P(1->0))
+	# (intuitively, marginal that layer M = 0 is P(layer m-1=0)P(0->0) + P(layer m-1=1)P(1->0))
 
 	polynomial = np.zeros(m+1)
 	polynomial[-1] = 1

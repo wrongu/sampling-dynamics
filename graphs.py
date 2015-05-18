@@ -47,10 +47,10 @@ class Graph(object):
 	def map_convert_strings_to_nodes(self, nmap):
 		"""take a dict {node:val, ...} where 'node' may be a node object or
 		a string, and return a map where keys are exclusively objects"""
-		for k,v in nmap.iteritems():
-			if type(k) is str:
-				nmap[self.get_node_by_name(k)] = v
-				del nmap[k]
+		for m,v in nmap.iteritems():
+			if type(m) is str:
+				nmap[self.get_node_by_name(m)] = v
+				del nmap[m]
 		return nmap
 
 	def size(self):

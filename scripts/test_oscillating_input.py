@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
 parser.add_argument('--prob', dest='p', type=float, default=0.96)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
-parser.add_argument('--k-max', dest='k_max', type=int, default=7)
+parser.add_argument('--m-max', dest='m_max', type=int, default=7)
 parser.add_argument('--period', dest='T', type=int, default=5)
 parser.add_argument('--samples', dest='samples', type=int, default='10000')
 parser.add_argument('--burnin', dest='burnin', type=int, default='20')
@@ -31,17 +31,17 @@ FFMpegWriter = manimation.writers['ffmpeg']
 metadata = dict(title='Mixing Time Animation', artist='Matplotlib', comment='')
 writer = FFMpegWriter(fps=15, metadata=metadata)
 
-k_min = 2
-layers = range(k_min, args.k_max+1)
+m_min = 2
+layers = range(m_min, args.m_max+1)
 
-for K in layers:
-	print K
-	net = m_deep_bistable(K, args.p)
+for M in layers:
+	print M
+	net = m_deep_bistable(M, args.p)
 	ev_node = net.get_node_by_name('X1')
 
 	def sample_net_response():
 		# keep track of state of every node at every sample
-		states = np.zeros((args.samples, K))
+		states = np.zeros((args.samples, M))
 
 		def record_sample(i, net):
 			states[i,:] = net.state_vector()
@@ -54,7 +54,7 @@ for K in layers:
 			args.burnin)
 		return states
 
-	states = load_or_run('sampled_osc_K%d_T%d_S%d' % (K, args.T, args.samples), sample_net_response, force_recompute=args.recompute)
+	states = load_or_run('sampled_osc_M%d_T%d_S%d' % (M, args.T, args.samples), sample_net_response, force_recompute=args.recompute)
 
 	# compute frequency response for each node
 	freq_response = np.fft.fft(states*2-1, axis=0)
@@ -64,15 +64,15 @@ for K in layers:
 		plt.loglog(np.fliplr(np.abs(freq_response)**2))
 		plt.title('Frequency response of nodes to input with T=%d' % args.T)
 		plt.xlabel('frequency')
-		plt.legend(['X%d' % (K-l+k_min) for l in reversed(layers)], loc='lower left')
-		plt.savefig('plots/frequency_response_K%d_T%d.png' % (K, args.T))
+		plt.legend(['X%d' % (M-l+m_min) for l in reversed(layers)], loc='lower left')
+		plt.savefig('plots/frequency_response_M%d_T%d.png' % (M, args.T))
 		plt.close()
 
 		if args.movie:
 			fig = plt.figure()
 			ax = fig.add_subplot(1,1,1)
 			text_obj = ax.text(.005, 0, "sample 0", fontsize=24, verticalalignment='top')
-			with writer.saving(fig, "plots/oscillating_input_animation_K%d_T%d.mp4" % (K, args.T), args.res):
+			with writer.saving(fig, "plots/oscillating_input_animation_M%d_T%d.mp4" % (M, args.T), args.res):
 				for i in range(args.frames):
 					print "writing frame", i+1
 					state_vector = states[i,:]
