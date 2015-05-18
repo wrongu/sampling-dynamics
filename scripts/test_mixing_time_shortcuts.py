@@ -48,6 +48,11 @@ net_marginal = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=arg
 mixing_time_marginal = get_mixing_time(net_marginal, 'marginal')
 print 'marginal', mixing_time_marginal
 
+# third data point: q = 0.5
+net_half = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt=np.array([[.5, .5],[.5, .5]]))
+mixing_time_half = get_mixing_time(net_half, 'dep0.500')
+print 'q = .5', mixing_time_half
+
 # get results for varying fro-to dependencies
 dependencies = np.linspace(args.q_min, args.q_max, args.steps) # AKA 'q'
 mixing_times = np.zeros(args.steps)
@@ -84,8 +89,13 @@ if args.plot:
 	dependencies = np.insert(dependencies, idx, marg_x)
 	mixing_times = np.insert(mixing_times, idx, mixing_time_marginal)
 
-	ax.plot([args.q_min,args.q_max], [mixing_time_baseline]*2, '--k')
-	ax.plot(dependencies[:-1], mixing_times[:-1], '-bo')
+	idx = np.searchsorted(dependencies, 0.5)
+	dependencies = np.insert(dependencies, idx, 0.5)
+	mixing_times = np.insert(mixing_times, idx, mixing_time_half)
+
+	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
+
+	ax.plot(dependencies, mixing_times, '-bo')
 	ax.plot(marg_x, mixing_time_marginal, 'ro')
 
 	plt.title('Effect of X2-X5 Shortcut on Mixing Times')
@@ -108,6 +118,6 @@ if args.plot:
 	plt.xlabel('q')
 	plt.ylabel('TVD(S_q, S_baseline)')
 
-	plt.savefig('plots/shortcut_mixing_time.png')
+	plt.savefig('plots/shortcut_allplots.png')
 	plt.close()
 

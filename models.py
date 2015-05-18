@@ -3,6 +3,7 @@ import random
 import itertools
 from graphs import Graph, DiGraph
 from graphical_models import BayesNet, DiscreteVariable
+from util import normalized
 
 def compute_p_for_given_marginal(m, marg):
 	"""In some cases where m_deep_bistable is used, we want P(Xm|X1) to be the same
@@ -69,15 +70,17 @@ def m_deep_with_shortcut(m, p=None, marg=None, fro=None, to=None, cpt='marginal'
 
 	prev_table = to.get_table()
 	prev_parents = net.parents(to)
-	# making room for a new binary parent
-	shape = tuple([2] + list(prev_table.shape))
+	# making room for a new parent
+	shape = tuple([fro.size()] + list(prev_table.shape))
 	table = np.zeros(shape)
-	# populate new table such that P(to|parents,fro)=P(to|fro)P(to|parents)
-	table[0,...,0] = prev_table[:,0] * cpt[0,0];
-	table[0,...,1] = prev_table[:,1] * cpt[0,1];
-	table[1,...,0] = prev_table[:,0] * cpt[1,0];
-	table[1,...,1] = prev_table[:,1] * cpt[1,1];
+	# populate new table such that P(to|parents,fro) = P(to|fro)P(to|parents)
+	for i in range(fro.size()):
+		for j in range(to.size()):
+			table[i,...,j] = cpt[i,j] * prev_table[...,j];
 
+	# renormalize such that P(to|a particular configuration of parents) = 1
+	table = normalized(table, axis=-1)
+	
 	net.cpt([fro] + prev_parents + [to], table)
 	return net
 

@@ -307,3 +307,10 @@ class BayesNet(DiGraph):
 		value = np.random.choice(node._states, p=distrib)
 		node.set_value(value)
 		return value
+
+	# Overriding DirectedGraph.parents to ensure order is same as in CPT indices
+	def parents(self, n):
+		rev = self._reverse_edges[n]
+		rents = super(BayesNet, self).parents(n)
+		idxs = [rev[p] for p in rents]
+		return [rents[i] for i in idxs] # radix sort
