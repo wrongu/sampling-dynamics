@@ -9,7 +9,7 @@ from util import load_or_run
 m = 3
 p = .964
 
-P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net))
+P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net))
 
 plt.figure()
 plt.imshow(P, interpolation='nearest')

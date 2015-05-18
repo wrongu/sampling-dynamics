@@ -41,15 +41,15 @@ def id_subset(net, where, value=True):
 
 	# brute force
 	# TODO make more efficient
-	k = 0
+	m = 0
 	for _id in xrange(n_ids):
 		id_to_state(net, _id)
 		if where(net) == value:
-			ids[k] = _id
-			k += 1
+			ids[m] = _id
+			m += 1
 
 	net.evidence(tmp)
-	return ids[:k]
+	return ids[:m]
 
 def transition_probability(net, state1, state2, sample_order, conditioned_on={}):
 	tmp = net.state_map()
@@ -91,7 +91,26 @@ def construct_markov_transition_matrix(net, conditioned_on={}):
 	net.evidence(tmp)
 	return P
 
-def steady_state(net, evidence, nodes, eps=0, K=10000, burnin=100):
+def set_transition_matrix_evidence(net, P, conditioned_on={}):
+	"""given an unconstrained transition matrix P, simply modify it based on evidence in conditioned_on
+	
+		(saves having to recompute from scratch using conditioned_on)
+	"""
+	for n,v in conditioned_on.iteritems():
+		correct_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:v}))
+		for s in n._states:
+			if s != v:
+				incorrect_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:s}))
+				# can't transition into invalid state
+				P[incorrect_ids, :] = 0.
+				# treat transitioning out of incorrect state as if already in {n:v}
+				P[:, incorrect_ids] = P[:, correct_ids]
+	# renormalize
+	for i in range(len(P)):
+		P[:,i] /= P[:,i].sum()
+	return P
+
+def steady_state(net, evidence, nodes, eps=0, M=10000, burnin=100):
 	"""computes steady state distribution for each node
 	"""
 	# eps allows for some small count at each state (to avoid zero-probability states)
@@ -101,7 +120,7 @@ def steady_state(net, evidence, nodes, eps=0, K=10000, burnin=100):
 		for n in nodes:
 			counts[n][n.state_index()] += 1
 
-	gibbs_sample(net, evidence, do_count, K, burnin)
+	gibbs_sample(net, evidence, do_count, M, burnin)
 
 	for _, c in counts.iteritems():
 		c /= c.sum()

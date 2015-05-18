@@ -86,8 +86,8 @@ def sampled_switching_times(net, target, max_t=10000, burnin=50, trials=10000):
 	max_t = max(times.keys())
 
 	times_array = np.zeros(max_t+1)
-	for k,v in times.iteritems():
-		times_array[k] = v
+	for m,v in times.iteritems():
+		times_array[m] = v
 	return times_array / times_array.sum()
 
 def sample_recently_switched_states(net, state_fn, max_iterations=50000):
@@ -143,22 +143,22 @@ if __name__ == '__main__':
 	parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
 	parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 	parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
-	parser.add_argument('--k-max', dest='k_max', type=int, default=7)
+	parser.add_argument('--m-max', dest='m_max', type=int, default=7)
 	parser.add_argument('--samples', dest='samples', type=int, default=5000)
 	parser.add_argument('--T', dest='max_t', type=int, default=10000)
 	args = parser.parse_args()
 
 	# Make plots that verify 'analytic' switching time algorithm (compare with sampling)
-	for k in range(2, args.k_max+1):
-		print k
-		net = m_deep_bistable(k, marg=args.marg)
+	for m in range(2, args.m_max+1):
+		print m
+		net = m_deep_bistable(m, marg=args.marg)
 		p = net.get_node_by_name('X1').get_table()[0,0]
 		nodes = net._nodes
 		print '-init-'
-		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		S_start = analytic_recently_switched_states(net, top_node_percept, 0, P)
 		print '-sample-'
-		empirical = load_or_run('sampled_switching_times_K%d_p%.3f' % (k, p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
+		empirical = load_or_run('sampled_switching_times_M%d_p%.3f' % (m, p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
 		print '-analytic-'
 		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=P, max_t=len(empirical))
 		
@@ -167,32 +167,32 @@ if __name__ == '__main__':
 			plt.plot(analytic)
 			plt.plot(empirical)
 			plt.legend(['analytic', 'sample-approx'])
-			plt.savefig('plots/cmp_empirical_analytic_st_K%d.png' % k)
+			plt.savefig('plots/cmp_empirical_analytic_st_M%d.png' % m)
 			plt.close()
 
 	# Make plots of switching times (with percept defined as top node state)
-	switching_time_distributions = np.zeros((args.max_t, args.k_max-1))
+	switching_time_distributions = np.zeros((args.max_t, args.m_max-1))
 	actual_max_t = 0
-	for k in range(2, args.k_max+1):
-		print k
-		net = m_deep_bistable(k, marg=args.marg)
+	for m in range(2, args.m_max+1):
+		print m
+		net = m_deep_bistable(m, marg=args.marg)
 		p = net.get_node_by_name('X1').get_table()[0,0]
 		print '-transition-'
-		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
 		S_init = analytic_recently_switched_states(net, top_node_percept, 0, P)
 		print '-analytic st-'
 		SW_distrib = analytic_switching_times(net, S_init, (top_node_percept, 1), transition=P, max_t=args.max_t)
 		actual_max_t = max(actual_max_t, len(SW_distrib))
-		switching_time_distributions[:len(SW_distrib),k-2] = SW_distrib
+		switching_time_distributions[:len(SW_distrib),m-2] = SW_distrib
 	if args.plot:
 		plt.figure()
-		bar_width = 1. / (args.k_max-1)
+		bar_width = 1. / (args.m_max-1)
 		colors = 'brgcmyk'
-		for i in range(2,args.k_max+1):
+		for i in range(2,args.m_max+1):
 			plt.bar(i*bar_width+np.arange(1,actual_max_t+1), switching_time_distributions[:actual_max_t,i-2],width=bar_width,color=colors[i-2])
 		plt.title('Analytic ST for various M')
-		plt.legend(['M = %d' % k for k in range(2, args.k_max+1)])
+		plt.legend(['M = %d' % m for m in range(2, args.m_max+1)])
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
 		plt.xlim([0,20])
@@ -200,28 +200,28 @@ if __name__ == '__main__':
 		plt.close()
 
 	# Make plots of switching times (with percept defined as majority state)
-	switching_time_distributions = np.zeros((args.max_t, args.k_max-1))
+	switching_time_distributions = np.zeros((args.max_t, args.m_max-1))
 	actual_max_t = 0
-	for k in range(2, args.k_max+1):
-		print k
-		net = m_deep_bistable(k, marg=args.marg)
+	for m in range(2, args.m_max+1):
+		print m
+		net = m_deep_bistable(m, marg=args.marg)
 		p = net.get_node_by_name('X1').get_table()[0,0]
 		print '-transition-'
-		P = load_or_run('transition_matrix_K%d_p%.3f_noev' % (k, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
 		S_init = analytic_recently_switched_states(net, plurality_state, 0, P)
 		print '-analytic st-'
 		SW_distrib = analytic_switching_times(net, S_init, (plurality_state, 1), transition=P, max_t=args.max_t)
 		actual_max_t = max(actual_max_t, len(SW_distrib))
-		switching_time_distributions[:len(SW_distrib),k-2] = SW_distrib
+		switching_time_distributions[:len(SW_distrib),m-2] = SW_distrib
 	if args.plot:
 		plt.figure()
-		bar_width = 1. / (args.k_max-1)
+		bar_width = 1. / (args.m_max-1)
 		colors = 'brgcmyk'
-		for i in range(2,args.k_max+1):
+		for i in range(2,args.m_max+1):
 			plt.bar(i*bar_width+np.arange(1,actual_max_t+1), switching_time_distributions[:actual_max_t,i-2],width=bar_width,color=colors[i-2])
 		plt.title('Analytic ST for various M (majority percept)')
-		plt.legend(['M = %d' % k for k in range(2, args.k_max+1)])
+		plt.legend(['M = %d' % m for m in range(2, args.m_max+1)])
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
 		plt.xlim([0,20])

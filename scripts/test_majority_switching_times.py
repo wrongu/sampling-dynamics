@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
 parser.add_argument('--prob', dest='p', type=float, default=0.96)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
-parser.add_argument('--k-max', dest='k_max', type=int, default=7)
+parser.add_argument('--m-max', dest='m_max', type=int, default=7)
 parser.add_argument('--samples', dest='samples', type=int, default=100000)
 parser.add_argument('--burnin', dest='burnin', type=int, default=20)
 args = parser.parse_args()
@@ -36,13 +36,13 @@ class SwitchedFunction(object):
 
 	def distribution(self):
 		d = np.zeros(max(self.switching_times.keys())+1)
-		for k,v in self.switching_times.iteritems():
-			d[k] = v
+		for m,v in self.switching_times.iteritems():
+			d[m] = v
 		return d
 
-for K in range(2, args.k_max+1):
-	print K
-	net = m_deep_bistable(K, args.p)
+for M in range(2, args.m_max+1):
+	print M
+	net = m_deep_bistable(M, args.p)
 	N = count_states(net)
 	S = analytic_marginal_states(net)
 
@@ -56,9 +56,9 @@ for K in range(2, args.k_max+1):
 		# plot distribution over sum of states (show it's bimodal)
 		plt.figure()
 		plt.plot(p_sum_state)
-		plt.title('P(sum of states) for K = %d' % K)
+		plt.title('P(sum of states) for M = %d' % M)
 		plt.xlabel('sum of states')
-		plt.savefig('plots/p_sum_state_K%d.png' % K)
+		plt.savefig('plots/p_sum_state_M%d.png' % M)
 		plt.close()
 
 	# run sampler to get switching times histogram
@@ -67,11 +67,11 @@ for K in range(2, args.k_max+1):
 		gibbs_sample(net, {}, counter, args.samples, args.burnin)
 		return counter.distribution()
 
-	d = load_or_run('sampled_switching_time_distribution_majority_K%d' % K, compute_distribution, force_recompute=args.recompute)
+	d = load_or_run('sampled_switching_time_distribution_majority_M%d' % M, compute_distribution, force_recompute=args.recompute)
 
 	if args.plot:
 		plt.figure()
 		plt.bar(np.arange(len(d)), d)
-		plt.title('Sampled switching time distributions (majority percept) K=%d' % K)
-		plt.savefig('plots/sampled_switching_time_majority_K%d.png' % K)
+		plt.title('Sampled switching time distributions (majority percept) M=%d' % M)
+		plt.savefig('plots/sampled_switching_time_majority_M%d.png' % M)
 		plt.close()
