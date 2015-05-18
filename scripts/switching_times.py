@@ -34,7 +34,7 @@ def analytic_switching_times(net, init_distribution, target, transition=None, ma
 
 	S = init_distribution
 
-	# iteratively transition S by P, counting at each step how much
+	# iteratively transition S by A, counting at each step how much
 	# probability mass moved into target and clearing those
 	# values (so flipping back and forth across threshold isn't counted
 	# multiple times)
@@ -117,7 +117,7 @@ def sample_recently_switched_states(net, state_fn, max_iterations=50000):
 
 def analytic_recently_switched_states(net, state_fn, state_at_t0, P=None):
 	N = count_states(net)
-	if P is None: P = construct_markov_transition_matrix(net)
+	if A is None: A = construct_markov_transition_matrix(net)
 
 	# find which state ids correspond to the 'initial' or 'time zero' state
 	state0_ids = id_subset(net, state_fn, state_at_t0)
@@ -129,7 +129,7 @@ def analytic_recently_switched_states(net, state_fn, state_at_t0, P=None):
 	# i.e. transition probability from marginal to any of state0_ids *but not from any state0_ids*
 	S_recently_switched = np.zeros(N)
 	S[state0_ids] = 0.
-	S_recently_switched[state0_ids] = np.dot(P, S)[state0_ids]
+	S_recently_switched[state0_ids] = np.dot(A, S)[state0_ids]
 	return S_recently_switched / S_recently_switched.sum()
 
 
@@ -155,12 +155,12 @@ if __name__ == '__main__':
 		p = net.get_node_by_name('X1').get_table()[0,0]
 		nodes = net._nodes
 		print '-init-'
-		P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
-		S_start = analytic_recently_switched_states(net, top_node_percept, 0, P)
+		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		S_start = analytic_recently_switched_states(net, top_node_percept, 0, A)
 		print '-sample-'
 		empirical = load_or_run('sampled_switching_times_M%d_p%.3f' % (m, p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
 		print '-analytic-'
-		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=P, max_t=len(empirical))
+		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=A, max_t=len(empirical))
 		
 		if args.plot:
 			plt.figure()
@@ -178,11 +178,11 @@ if __name__ == '__main__':
 		net = m_deep_bistable(m, marg=args.marg)
 		p = net.get_node_by_name('X1').get_table()[0,0]
 		print '-transition-'
-		P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
-		S_init = analytic_recently_switched_states(net, top_node_percept, 0, P)
+		S_init = analytic_recently_switched_states(net, top_node_percept, 0, A)
 		print '-analytic st-'
-		SW_distrib = analytic_switching_times(net, S_init, (top_node_percept, 1), transition=P, max_t=args.max_t)
+		SW_distrib = analytic_switching_times(net, S_init, (top_node_percept, 1), transition=A, max_t=args.max_t)
 		actual_max_t = max(actual_max_t, len(SW_distrib))
 		switching_time_distributions[:len(SW_distrib),m-2] = SW_distrib
 	if args.plot:
@@ -207,11 +207,11 @@ if __name__ == '__main__':
 		net = m_deep_bistable(m, marg=args.marg)
 		p = net.get_node_by_name('X1').get_table()[0,0]
 		print '-transition-'
-		P = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
 		print '-init-'
-		S_init = analytic_recently_switched_states(net, plurality_state, 0, P)
+		S_init = analytic_recently_switched_states(net, plurality_state, 0, A)
 		print '-analytic st-'
-		SW_distrib = analytic_switching_times(net, S_init, (plurality_state, 1), transition=P, max_t=args.max_t)
+		SW_distrib = analytic_switching_times(net, S_init, (plurality_state, 1), transition=A, max_t=args.max_t)
 		actual_max_t = max(actual_max_t, len(SW_distrib))
 		switching_time_distributions[:len(SW_distrib),m-2] = SW_distrib
 	if args.plot:
