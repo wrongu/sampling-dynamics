@@ -18,12 +18,14 @@ parser.add_argument('--m-min', dest='m_min', type=int, default=2)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
 parser.add_argument('--transience-max', dest='t_max', type=int, default=6) # max number of samples to try where boost has an effect
 parser.add_argument('--boost-max', dest='boost_max', type=float, default=2.0) # exponent in feedforward term
-parser.add_argument('--boost-steps', dest='steps', type=int, default=11) # exponent in feedforward term
+parser.add_argument('--boost-steps', dest='boost_steps', type=int, default=11) # exponent in feedforward term
 args = parser.parse_args()
 
 Ms = range(args.m_min, args.m_max+1)
+Ts = range(args.t_max + 1)
+alphas = np.linspace(1.0, args.boost_max, args.boost_steps)
 
-mixing_times = np.zeros((args.t_max, args.steps, len(Ms)))
+mixing_times = np.zeros((args.boost_steps, args.t_max+1, len(Ms)))
 
 for mi,m in enumerate(Ms):
 	net = m_deep_bistable(m, marg=args.marg)
@@ -35,33 +37,34 @@ for mi,m in enumerate(Ms):
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
-	for bi, b in enumerate(np.linspace(1.0, args.boost_max, args.steps)):
-		A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f' % (m, p, args.boost),
-			lambda: construct_markov_transition_matrix(net, feedforward_boost=args.boost), force_recompute=args.recompute)
+	for ai, a in enumerate(alphas):
+		A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f' % (m, p, a),
+			lambda: construct_markov_transition_matrix(net, feedforward_boost=a), force_recompute=args.recompute)
 		A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
 
-		for transient_steps in range(args.t_max+1):
+		for transient_steps in Ts:
 			# first 'transience' samples are with A_ff
 			S = S_start.copy()
 			tvd = variational_distance(S, S_target)
 			for t in range(transient_steps):
 				if tvd < args.eps:
-					mixing_times[transient_steps, bi, mi] = t
+					mixing_times[ai, transient_steps, mi] = t
 					break
 				S = np.dot(A_ff, S)
 				tvd = variational_distance(S, S_target)
 			else: # aka 'nobreak'
-				mixing_times[transient_steps, bi, mi], _ = mixing_time(S, S_target, transition=A, eps=args.eps)
-				mixing_times[transient_steps, bi, mi] += args.transience
-
-# if args.plot:
-# 	fig = plt.figure()
-# 	ax = fig.add_subplot(1,1,1)
-# 	ax.plot(Ms, mixing_times_transient, '-o')
-# 	ax.plot(Ms, mixing_times, '-o')
-# 	ax.legend(['boosted', 'baseline'])
-# 	ax.set_xlabel('Model Depth (M)')
-# 	ax.set_ylabel('mixing time')
-# 	plt.title('Change in Mixing Time with %d-Step %.1f-strength Transient feedforward boost' % (args.transience, args.boost))
-# 	plt.savefig('plots/transient_t%d_b%.3f.png' % (args.transience, args.boost))
-# 	plt.close()
+				mixing_times[ai, transient_steps, mi], _ = mixing_time(S, S_target, transition=A, eps=args.eps)
+				mixing_times[ai, transient_steps, mi] += transient_steps
+if args.plot:
+	for mi,m in enumerate(Ms):
+		fig = plt.figure()
+		ax = fig.add_subplot(1,1,1)
+		for t in Ts:
+			ax.plot(alphas, mixing_times[:,t,mi], '-o')
+		ax.set_ylim([0,mixing_times.max()+5])
+		ax.legend(['baseline'] + ['%d steps' % t for t in Ts[1:]], loc='upper right')
+		ax.set_xlabel('alpha')
+		ax.set_ylabel('mixing time')
+		plt.title('Mixing Time reductions as function of alpha, m = %d' % m)
+		plt.savefig('plots/transient_m%d.png' % m)
+		plt.close()
