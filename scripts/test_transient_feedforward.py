@@ -56,6 +56,7 @@ for mi,m in enumerate(Ms):
 				mixing_times[ai, transient_steps, mi], _ = mixing_time(S, S_target, transition=A, eps=args.eps)
 				mixing_times[ai, transient_steps, mi] += transient_steps
 if args.plot:
+	# Mixing Time Plots
 	for mi,m in enumerate(Ms):
 		fig = plt.figure()
 		ax = fig.add_subplot(1,1,1)
@@ -67,4 +68,36 @@ if args.plot:
 		ax.set_ylabel('mixing time')
 		plt.title('Mixing Time reductions as function of alpha, m = %d' % m)
 		plt.savefig('plots/transient_m%d.png' % m)
+		plt.close()
+
+	# TVD Plots
+	for mi,m in enumerate(Ms):
+		fig = plt.figure()
+		ax = fig.add_subplot(1,1,1)
+		tvds = np.zeros(alphas.shape)
+		
+		net = m_deep_bistable(m, marg=args.marg)
+		ev = net.get_node_by_name('X1')
+		p = ev.get_table()[0,0]
+		
+		for ai,a in enumerate(alphas):
+			A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net))
+			A = set_transition_matrix_evidence(net, A, {ev: 1})
+	
+			A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f' % (m, p, a),
+				lambda: construct_markov_transition_matrix(net, feedforward_boost=a))
+			A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
+			# steady state distribution of A_ff transition matrix is largest eigenvector (eigenvalue=1)
+			w,v = np.linalg.eig(A_ff)
+			inds = np.argsort(w)
+			S_ff_steady_state = np.abs(v[:,inds[-1]])
+			S_ff_steady_state /= S_ff_steady_state.sum()
+			S_baseline = analytic_marginal_states(net, conditioned_on={ev: 1}) # same as S_target above
+			import pdb; pdb.set_trace()
+			tvds[ai] = variational_distance(S_baseline, S_ff_steady_state)
+		ax.plot(alphas, tvds, '-o')
+		ax.set_xlabel('alpha')
+		ax.set_ylabel('total variational distance')
+		plt.title('Total Variational Distance of steady states A vs A_ff')
+		plt.savefig('plots/transient_tvd_m%d.png' % m)
 		plt.close()
