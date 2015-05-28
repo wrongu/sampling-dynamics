@@ -25,6 +25,14 @@ Ms = range(args.m_min, args.m_max+1)
 Ts = range(args.t_max + 1)
 alphas = np.linspace(1.0, args.boost_max, args.boost_steps)
 
+def eig_steadystate(A):
+	# steady state distribution of A_ff transition matrix is largest eigenvector (eigenvalue=1)
+	w,v = np.linalg.eig(A)
+	inds = np.argsort(w)
+	S_steady_state = np.abs(v[:,inds[-1]])
+	S_steady_state /= S_steady_state.sum()
+	return S_steady_state
+
 mixing_times = np.zeros((args.boost_steps, args.t_max+1, len(Ms)))
 
 for mi,m in enumerate(Ms):
@@ -43,11 +51,14 @@ for mi,m in enumerate(Ms):
 		A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
 
 		for transient_steps in Ts:
+			# avoid possibility that S-->S_ff_steadystate 'passes through' S_target, apparently
+			# looking like mixing time is very small
+			ff_steady_state_in_range = variational_distance(eig_steadystate(A_ff), S_target) < args.eps
 			# first 'transience' samples are with A_ff
 			S = S_start.copy()
 			tvd = variational_distance(S, S_target)
 			for t in range(transient_steps):
-				if tvd < args.eps:
+				if ff_steady_state_in_range and tvd < args.eps:
 					mixing_times[ai, transient_steps, mi] = t
 					break
 				S = np.dot(A_ff, S)
@@ -87,13 +98,8 @@ if args.plot:
 			A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f' % (m, p, a),
 				lambda: construct_markov_transition_matrix(net, feedforward_boost=a))
 			A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
-			# steady state distribution of A_ff transition matrix is largest eigenvector (eigenvalue=1)
-			w,v = np.linalg.eig(A_ff)
-			inds = np.argsort(w)
-			S_ff_steady_state = np.abs(v[:,inds[-1]])
-			S_ff_steady_state /= S_ff_steady_state.sum()
+			S_ff_steady_state = eig_steadystate(A_ff)
 			S_baseline = analytic_marginal_states(net, conditioned_on={ev: 1}) # same as S_target above
-			import pdb; pdb.set_trace()
 			tvds[ai] = variational_distance(S_baseline, S_ff_steady_state)
 		ax.plot(alphas, tvds, '-o')
 		ax.set_xlabel('alpha')
