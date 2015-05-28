@@ -186,11 +186,14 @@ def node_marginal(net, S, node):
 def variational_distance(P1, P2):
 	return 0.5 * np.abs(P1 - P2).sum()
 
-def mixing_time(start, target, transition, eps=0.05, max_t=1000):
+def mixing_time(start, target, transition, eps=0.05, max_t=1000, converging_to=None):
 	# Using markov transition matrix A, loop until `start` converges to within `eps` of `target`
+	if converging_to is not None:
+		if variational_distance(target, converging_to) > eps:
+			return max_t, [] # it will never get there
 	S = start
 	i = 0
-	vds = np.zeros(max_t)
+	vds = np.zeros(max_t+1)
 	d = variational_distance(target, S)
 	vds[0] = d
 	while d >= eps:
@@ -198,6 +201,6 @@ def mixing_time(start, target, transition, eps=0.05, max_t=1000):
 		S = np.dot(transition, S)
 		d = variational_distance(target, S)
 		vds[i] = d
-		if i == max_t-1:
+		if i == max_t:
 			break
-	return i, vds[:i+1]
+	return i, vds
