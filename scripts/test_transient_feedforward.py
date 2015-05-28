@@ -99,7 +99,7 @@ if args.plot:
 				lambda: construct_markov_transition_matrix(net, feedforward_boost=a))
 			A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
 			S_ff_steady_state = eig_steadystate(A_ff)
-			S_baseline = analytic_marginal_states(net, conditioned_on={ev: 1}) # same as S_target above
+			S_baseline = eig_steadystate(A)
 			tvds[ai] = variational_distance(S_baseline, S_ff_steady_state)
 		ax.plot(alphas, tvds, '-o')
 		ax.set_xlabel('alpha')
