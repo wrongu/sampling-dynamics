@@ -51,7 +51,7 @@ def id_subset(net, where, value=True):
 	net.evidence(tmp)
 	return ids[:m]
 
-def transition_probability(net, state1, state2, sample_order, conditioned_on={}):
+def transition_probability(net, state1, state2, sample_order, conditioned_on={}, fatigue_tau=None):
 	tmp = net.state_map()
 	p = 1.0
 
@@ -65,13 +65,13 @@ def transition_probability(net, state1, state2, sample_order, conditioned_on={})
 			else:
 				pass # implicitly multiplying p by 1
 		else:
-			node_marginal = net.markov_blanket_marginal(n)
+			node_marginal = net.markov_blanket_marginal(n, fatigue_tau)
 			p *= node_marginal[n._states.index(state2[i])]
 			n.set_value(state2[i])
 	net.evidence(tmp)
 	return p
 
-def construct_markov_transition_matrix(net, conditioned_on={}):
+def construct_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None):
 	tmp = net.state_map()
 	n_states = count_states(net)
 
@@ -86,7 +86,7 @@ def construct_markov_transition_matrix(net, conditioned_on={}):
 	u = 1.0 / fact(len(net._nodes))
 	for ns in orderings:
 		for i,j in itertools.product(range(n_states), range(n_states)):
-			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on)
+			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on, fatigue_tau)
 
 	net.evidence(tmp)
 	return A
@@ -127,6 +127,14 @@ def steady_state(net, evidence, nodes, eps=0, M=10000, burnin=100):
 		c /= c.sum()
 
 	return counts
+
+def eig_steadystate(A):
+	# steady state distribution of A_ff transition matrix is largest eigenvector (eigenvalue=1)
+	w,v = np.linalg.eig(A)
+	inds = np.argsort(w)
+	S_steady_state = np.abs(v[:,inds[-1]])
+	S_steady_state /= S_steady_state.sum()
+	return S_steady_state
 
 def analytic_marginal_states(net, conditioned_on={}):
 	N = count_states(net)
