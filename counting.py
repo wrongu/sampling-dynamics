@@ -91,26 +91,6 @@ def construct_markov_transition_matrix(net, conditioned_on={}, feedforward_boost
 	net.evidence(tmp)
 	return A
 
-def set_transition_matrix_evidence(net, A, conditioned_on={}):
-	"""given an unconstrained transition matrix A, simply modify it based on evidence in conditioned_on
-	
-		(saves having to recompute from scratch using conditioned_on)
-	"""
-	for n,v in conditioned_on.iteritems():
-		correct_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:v}))
-		for s in n._states:
-			if s != v:
-				incorrect_ids = id_subset(net, where=lambda net: net.is_consistent_with_evidence({n:s}))
-				# can't transition into invalid state
-				A[incorrect_ids, :] = 0.
-				# treat transitioning out of incorrect state as if already in {n:v}
-				A[:, incorrect_ids] = A[:, correct_ids]
-	# renormalize
-	for i in range(len(A)):
-		A[:,i] /= A[:,i].sum()
-	return A
-
-
 def steady_state(net, evidence, nodes, eps=0, M=10000, burnin=100):
 	"""computes steady state distribution for each node
 	"""

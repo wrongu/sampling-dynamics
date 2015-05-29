@@ -28,7 +28,7 @@ writer = FFMpegWriter(fps=15, metadata=metadata)
 M = args.M
 net = m_deep_bistable(M, args.p)
 ev = net.get_node_by_name('X1')
-A = load_or_run('transition_matrix_M%d_p%.3f' % (M, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (M, args.p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 S_target = analytic_marginal_states(net, conditioned_on={ev: 1})

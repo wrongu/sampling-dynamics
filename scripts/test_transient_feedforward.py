@@ -40,15 +40,13 @@ for mi,m in enumerate(Ms):
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
 
-	A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
-	A = set_transition_matrix_evidence(net, A, {ev: 1})
+	A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (m, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}), force_recompute=args.recompute)
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 	for ai, a in enumerate(alphas):
-		A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f' % (m, p, a),
-			lambda: construct_markov_transition_matrix(net, feedforward_boost=a), force_recompute=args.recompute)
-		A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
+		A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f_ev1' % (m, p, a),
+			lambda: construct_markov_transition_matrix(net, feedforward_boost=a, conditioned_on={ev: 1}), force_recompute=args.recompute)
 
 		for transient_steps in Ts:
 			# avoid possibility that S-->S_ff_steadystate 'passes through' S_target, apparently
@@ -92,12 +90,10 @@ if args.plot:
 		p = ev.get_table()[0,0]
 		
 		for ai,a in enumerate(alphas):
-			A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net))
-			A = set_transition_matrix_evidence(net, A, {ev: 1})
+			A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (m, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 	
-			A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f' % (m, p, a),
-				lambda: construct_markov_transition_matrix(net, feedforward_boost=a))
-			A_ff = set_transition_matrix_evidence(net, A_ff, {ev: 1})
+			A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f_ev1' % (m, p, a),
+				lambda: construct_markov_transition_matrix(net, feedforward_boost=a, conditioned_on={ev: 1}))
 			S_ff_steady_state = eig_steadystate(A_ff)
 			S_baseline = eig_steadystate(A)
 			tvds[ai] = variational_distance(S_baseline, S_ff_steady_state)
