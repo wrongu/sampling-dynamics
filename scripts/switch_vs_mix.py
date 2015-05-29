@@ -36,8 +36,8 @@ for i,m in enumerate(Ms):
 	# compute mean switching time = sum_{t} t*p(t) = dot(histogram, 0...max_t)
 	switching_times[i] = np.dot(switching_time_histogram, np.arange(len(switching_time_histogram)))
 
-	A = set_transition_matrix_evidence(net, A, {ev: 1})
-	mixing_times[i], _ = mixing_time(S_start, S_target, transition=A, eps=args.m_eps)
+	A_mix = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (m, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}), force_recompute=args.recompute)
+	mixing_times[i], _ = mixing_time(S_start, S_target, transition=A_mix, eps=args.m_eps)
 
 if args.plot:
 	fig = plt.figure()
