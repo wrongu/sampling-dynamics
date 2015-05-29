@@ -24,10 +24,9 @@ args = parser.parse_args()
 
 def get_mixing_time(net, identifier, S_target=None):
 	ev = net.get_node_by_name('X1')
-	A = load_or_run('transition_matrix_shortcuts_m%d_f%d_t%d_%s' % (args.m, args.fro, args.to, identifier),
-		lambda: construct_markov_transition_matrix(net),
+	A = load_or_run('transition_matrix_shortcuts_m%d_f%d_t%d_%s_ev1' % (args.m, args.fro, args.to, identifier),
+		lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}),
 		force_recompute=args.recompute)
-	A = set_transition_matrix_evidence(net, A, {ev: 1})
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 	S_steady_state = analytic_marginal_states(net, conditioned_on={ev: 1})
 	return mixing_time(S_start, S_target, A, eps=args.eps, converging_to=S_steady_state)[0]
@@ -36,10 +35,9 @@ def get_mixing_time(net, identifier, S_target=None):
 net_baseline = m_deep_bistable(args.m, marg=args.marg)
 ev = net_baseline.get_node_by_name('X1')
 p = ev.get_table()[0,0]
-A = load_or_run('transition_matrix_M%d_p%.3f' % (args.m, p),
-	lambda: construct_markov_transition_matrix(net_baseline),
+A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (args.m, p),
+	lambda: construct_markov_transition_matrix(net_baseline, conditioned_on={ev: 1}),
 	force_recompute=args.recompute)
-A = set_transition_matrix_evidence(net_baseline, A, {ev:1})
 S_start_baseline  = analytic_marginal_states(net_baseline, conditioned_on={ev: 0})
 S_target_baseline = analytic_marginal_states(net_baseline, conditioned_on={ev: 1})
 mixing_time_baseline, _ = mixing_time(S_start_baseline, S_target_baseline, A, eps=args.eps)
