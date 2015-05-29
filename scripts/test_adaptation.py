@@ -33,10 +33,9 @@ for mi,m in enumerate(Ms):
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 	for ti, tau in enumerate(taus):
-		A_adapt = load_or_run('transition_matrix_adapt_M%d_p%.3f_tau%.3f' % (m, p, tau),
-			lambda: construct_markov_transition_matrix(net, fatigue_tau=tau),
+		A_adapt = load_or_run('transition_matrix_adapt_M%d_p%.3f_tau%.3f_ev1' % (m, p, tau),
+			lambda: construct_markov_transition_matrix(net, fatigue_tau=tau, conditioned_on={ev: 1}),
 			force_recompute=args.recompute)
-		A_adapt = set_transition_matrix_evidence(net, A_adapt, {ev: 1})
 
 		mixing_times[ti,mi] = mixing_time(S_start, S_target, A_adapt, eps=args.eps,
 			converging_to=eig_steadystate(A_adapt))[0]
@@ -49,9 +48,8 @@ if args.plot:
 		ev = net.get_node_by_name('X1')
 		p = ev.get_table()[0,0]
 
-		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p),
-			lambda: construct_markov_transition_matrix(net))
-		A = set_transition_matrix_evidence(net, A, {ev: 1})
+		A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (m, p),
+			lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 		# Mixing Time Plot
 		fig = plt.figure()
@@ -70,9 +68,8 @@ if args.plot:
 		ax = fig.add_subplot(2,1,2)
 		tvds = np.zeros(taus.shape)
 		for ti,tau in enumerate(taus):
-			A_adapt = load_or_run('transition_matrix_adapt_M%d_p%.3f_tau%.3f' % (m, p, tau),
-				lambda: construct_markov_transition_matrix(net, fatigue_tau=tau))
-			A_adapt = set_transition_matrix_evidence(net, A_adapt, {ev: 1})
+			A_adapt = load_or_run('transition_matrix_adapt_M%d_p%.3f_tau%.3f_ev1' % (m, p, tau),
+				lambda: construct_markov_transition_matrix(net, fatigue_tau=tau, conditioned_on={ev: 1}))
 
 			tvds[ti] = variational_distance(
 				eig_steadystate(A),
