@@ -29,7 +29,8 @@ for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
-	A = load_or_run('transition_matrix_M%d_p%.3f' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+	A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (M, p), lambda: construct_markov_transition_matrix(net))
+	A = set_transition_matrix_evidence(net, A, {ev: 1})
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
@@ -56,7 +57,8 @@ for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
-	A = load_or_run('transition_matrix_M%d_p%.3f' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
+	A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (M, p), lambda: construct_markov_transition_matrix(net))
+	A = set_transition_matrix_evidence(net, A, {ev: 1})
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
