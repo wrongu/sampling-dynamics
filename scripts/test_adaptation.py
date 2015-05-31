@@ -48,7 +48,7 @@ if args.plot:
 		ev = net.get_node_by_name('X1')
 		p = ev.get_table()[0,0]
 
-		A = load_or_run('transition_matrix_M%d_p%.3f_noev_ev1' % (m, p),
+		A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (m, p),
 			lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
 
 		# Mixing Time Plot
