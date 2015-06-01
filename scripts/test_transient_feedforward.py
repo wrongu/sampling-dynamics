@@ -90,12 +90,11 @@ if args.plot:
 		p = ev.get_table()[0,0]
 		
 		for ai,a in enumerate(alphas):
-			A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (m, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}))
-	
 			A_ff = load_or_run('transition_matrix_transient_ff_M%d_p%.3f_b%.3f_ev1' % (m, p, a),
 				lambda: construct_markov_transition_matrix(net, feedforward_boost=a, conditioned_on={ev: 1}))
 			S_ff_steady_state = eig_steadystate(A_ff)
-			S_baseline = eig_steadystate(A)
+			# S_baseline could equivalently be eig_steadystate(A), but this serves as a better sanity-check as well:
+			S_baseline = analytic_marginal_states(net, conditioned_on={ev: 1})
 			tvds[ai] = variational_distance(S_baseline, S_ff_steady_state)
 		ax.plot(alphas, tvds, '-o')
 		ax.set_xlabel('alpha')
