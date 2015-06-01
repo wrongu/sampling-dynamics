@@ -22,7 +22,11 @@ args = parser.parse_args()
 # 'adaptation' model for <tau_steps> values of tau=0.5...1.0
 Ms = range(2,args.m+1)
 taus = np.linspace(args.tau_min, 0.5, args.tau_steps)
-mixing_times = np.zeros((args.tau_steps, len(Ms))) # one data point per model per tau
+
+# _true and _self are MT with respect to unmodified transition matrix and modified one, respectively.
+# When TVD(S_true_ss, S_self_ss)>eps, mixing_time_true is infinite.
+mixing_times_true = np.zeros((args.tau_steps, len(Ms))) # one data point per model per tau
+mixing_times_self = np.zeros((args.tau_steps, len(Ms)))
 
 for mi,m in enumerate(Ms):
 	net = m_deep_bistable(m, marg=args.marg)
@@ -37,8 +41,14 @@ for mi,m in enumerate(Ms):
 			lambda: construct_markov_transition_matrix(net, fatigue_tau=tau, conditioned_on={ev: 1}),
 			force_recompute=args.recompute)
 
-		mixing_times[ti,mi] = mixing_time(S_start, S_target, A_adapt, eps=args.eps,
-			converging_to=eig_steadystate(A_adapt))[0]
+		converging_to = eig_steadystate(A_adapt)
+
+		# compute mixing time to 'true' posterior
+		mixing_times_true[ti,mi] = mixing_time(S_start, S_target, A_adapt, eps=args.eps,
+			converging_to=converging_to)[0]
+		# compute mixing time to 'modified' posterior
+		mixing_times_self[ti,mi] = mixing_time(S_start, converging_to, A_adapt, eps=args.eps,
+			converging_to=converging_to)[0]
 
 if args.plot:
 	# mixing time plots
@@ -55,13 +65,21 @@ if args.plot:
 		fig = plt.figure()
 		ax = fig.add_subplot(2,1,1)
 
-		mts = mixing_times[:,mi]
-		reasonable_times = mts < 1000
-		ax.plot(taus[reasonable_times], mts[reasonable_times], '-o')
+		# 'true' mixing time plot
+		reasonable_times = mixing_times_true[:,mi] < 1000
+		ax.plot(taus[reasonable_times], mixing_times_true[reasonable_times,mi], '-o')
+		# 'self' mixing time plot
+		reasonable_times = mixing_times_self[:,mi] < 1000
+		ax.plot(taus[reasonable_times], mixing_times_self[reasonable_times,mi], '--o')
+
 		yl = ax.get_ylim()
 		ax.set_ylim([0, yl[1]+2])
+		xl = [max(args.tau_min-.05, 0), 0.55]
+		ax.set_xlim(xl)
 
-		plt.title('Mixing Times with Adaptation, M=%d' % m)
+		ax.plot(xl,[mixing_times_true[-1,mi]]*2, '--k')
+
+		plt.title('Mixing Times with Adaptation')
 		ax.set_ylabel('mixing time')
 
 		# TVD Plot
