@@ -78,7 +78,7 @@ if args.plot:
 		net._nodes[5] : (0,0),
 	}
 	plot_net_layerwise(net, ax=ax, positions=node_positions, x_spacing=.5, y_spacing=1)
-	plt.savefig("plots/model_shortcut.png")
+	plt.savefig("plots/model_f%d_t%d_shortcut.png" % (args.fro, args.to))
 	plt.close()
 
 	# plot mixing times
@@ -95,9 +95,9 @@ if args.plot:
 
 	ax.plot(dependencies[reasonable_times], mixing_times[reasonable_times], '-bo')
 
-	plt.title('Effect of X2-X5 Shortcut on Mixing Times')
+	plt.title('Effect of X%d-X%d Shortcut on Mixing Times' % (args.to, args.fro))
 	plt.ylabel('Mixing Time')
-	plt.legend(['no shortcut', 'shortcut'], loc='lower left')
+	plt.legend(['no shortcut', 'shortcut'], loc='upper left')
 
 	yl = ax.get_ylim()
 	ax.set_ylim([0,yl[1]+5])
@@ -115,6 +115,6 @@ if args.plot:
 	plt.xlabel('q')
 	plt.ylabel('TVD from baseline')
 
-	plt.savefig('plots/shortcut_allplots.png')
+	plt.savefig('plots/shortcut_f%d_t%d_allplots.png' % (args.fro, args.to))
 	plt.close()
 
