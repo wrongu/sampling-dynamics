@@ -79,7 +79,7 @@ def m_deep_with_shortcut(m, p=None, marg=None, fro=None, to=None, cpt='marginal'
 			table[i,...,j] = cpt[i,j] * prev_table[...,j];
 
 	# renormalize such that P(to|a particular configuration of parents) = 1
-	table = normalized(table, axis=-1)
+	table = normalized(table, axis=-1, order=1)
 	
 	net.cpt([fro] + prev_parents + [to], table)
 	return net
