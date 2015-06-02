@@ -33,7 +33,6 @@ for mi,m in enumerate(Ms):
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
 
-	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 	for ti, tau in enumerate(taus):
@@ -43,11 +42,15 @@ for mi,m in enumerate(Ms):
 
 		converging_to = eig_steadystate(A_adapt)
 
+		# steadystate with {ev:0} is our starting point. It is computed by simply 'flipping' 
+		# the distribution from {ev:1} (symmetry is convenient)
+		S_steadystate_ev0 = flip_distribution_binary_nodes(net, converging_to)
+
 		# compute mixing time to 'true' posterior
-		mixing_times_true[ti,mi] = mixing_time(S_start, S_target, A_adapt, eps=args.eps,
+		mixing_times_true[ti,mi] = mixing_time(S_steadystate_ev0, S_target, A_adapt, eps=args.eps,
 			converging_to=converging_to)[0]
 		# compute mixing time to 'modified' posterior
-		mixing_times_self[ti,mi] = mixing_time(S_start, converging_to, A_adapt, eps=args.eps,
+		mixing_times_self[ti,mi] = mixing_time(S_steadystate_ev0, converging_to, A_adapt, eps=args.eps,
 			converging_to=converging_to)[0]
 
 if args.plot:
