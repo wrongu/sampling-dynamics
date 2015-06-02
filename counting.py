@@ -115,6 +115,22 @@ def eig_steadystate(A):
 	S_steady_state = np.abs(v[:,inds[-1]])
 	S_steady_state /= S_steady_state.sum()
 	return S_steady_state
+def flip_distribution_binary_nodes(net, S):
+	"""if S is a distribution over states {a,b}^net.size(),
+	this returns the inverted distribution with all a and b switched
+	"""
+
+	n_states = len(S)
+	S_flip = np.zeros(S.shape)
+
+	for i in xrange(n_states):
+		state_vec = id_to_state(net, i)
+		# flip 1->0 and vice versa
+		state_vec_inv = [nd._states[1-nd._states.index(st)] for nd,st in zip(net.nodes(), state_vec)]
+		j = state_to_id(net, state_vec_inv)
+
+		S_flip[j] = S[i]
+	return S_flip
 
 def analytic_marginal_states(net, conditioned_on={}):
 	N = count_states(net)

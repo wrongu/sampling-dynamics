@@ -22,15 +22,6 @@ parser.add_argument('--to', dest='to', type=int, default=2)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
 args = parser.parse_args()
 
-def get_mixing_time(net, identifier, S_target=None):
-	ev = net.get_node_by_name('X1')
-	A = load_or_run('transition_matrix_shortcuts_m%d_f%d_t%d_%s_ev1' % (args.m, args.fro, args.to, identifier),
-		lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}),
-		force_recompute=args.recompute)
-	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
-	S_steady_state = analytic_marginal_states(net, conditioned_on={ev: 1})
-	return mixing_time(S_start, S_target, A, eps=args.eps, converging_to=S_steady_state)[0]
-
 # first data point: baseline mixing time (no shortcut)
 net_baseline = m_deep_bistable(args.m, marg=args.marg)
 ev = net_baseline.get_node_by_name('X1')
@@ -43,61 +34,63 @@ S_target_baseline = analytic_marginal_states(net_baseline, conditioned_on={ev: 1
 mixing_time_baseline, _ = mixing_time(S_start_baseline, S_target_baseline, A, eps=args.eps)
 print 'baseline', mixing_time_baseline
 
-mixing_time_target = S_target_baseline if args.baseline else None
+def get_mixing_time_base_self(net, identifier):
+	ev = net.get_node_by_name('X1')
+	A_sc = load_or_run('transition_matrix_shortcuts_m%d_f%d_t%d_%s_ev1' % (args.m, args.fro, args.to, identifier),
+		lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}),
+		force_recompute=args.recompute)
+	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
+	S_steady_state = analytic_marginal_states(net, conditioned_on={ev: 1})
 
-# second data point: shortcut uses marginal distribution
-net_marginal = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt='marginal')
-mixing_time_marginal = get_mixing_time(net_marginal, 'marginal', mixing_time_target)
-print 'marginal', mixing_time_marginal
-
-# third data point: q = 0.5
-net_half = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt=np.array([[.5, .5],[.5, .5]]))
-mixing_time_half = get_mixing_time(net_half, 'dep0.500', mixing_time_target)
-print 'q = .5', mixing_time_half
+	mt_base,_ = mixing_time(S_start, S_target_baseline, A_sc, eps=args.eps, converging_to=S_steady_state)
+	mt_self,_ = mixing_time(S_start, S_steady_state, A_sc, eps=args.eps, converging_to=S_steady_state)
+	return (mt_base, mt_self)
 
 # get results for varying fro-to dependencies
 dependencies = np.linspace(args.q_min, args.q_max, args.steps) # AKA 'q'
-mixing_times = np.zeros(args.steps)
+mixing_times_base = np.zeros(args.steps)
+mixing_times_self = np.zeros(args.steps)
 for i,dep in enumerate(dependencies):
 	cpt = np.array([[dep, 1-dep],[1-dep, dep]])
 	net = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt=cpt)
-	mixing_times[i] = get_mixing_time(net, 'dep%.3f' % dep, mixing_time_target)
-	print 'dep', dep, mixing_times[i]
+	mixing_times_base[i], mixing_times_self[i] = get_mixing_time_base_self(net, 'dep%.3f' % dep)
+	print 'dep', dep, mixing_times_base[i]
 
 if args.plot:
-	from visualize import plot_net_layerwise
-	# plot model
-	fig = plt.figure()
-	ax = fig.add_subplot(1,1,1)
-	node_positions = {
-		net._nodes[0] : (0,5),
-		net._nodes[1] : (0,4),
-		net._nodes[2] : (.5,3),
-		net._nodes[3] : (.5,2),
-		net._nodes[4] : (0,1),
-		net._nodes[5] : (0,0),
-	}
-	plot_net_layerwise(net, ax=ax, positions=node_positions, x_spacing=.5, y_spacing=1)
-	plt.savefig("plots/model_f%d_t%d_shortcut.png" % (args.fro, args.to))
-	plt.close()
+	# from visualize import plot_net_layerwise
+	# # plot model
+	# fig = plt.figure()
+	# ax = fig.add_subplot(1,1,1)
+	# node_positions = {
+	# 	net._nodes[0] : (0,5),
+	# 	net._nodes[1] : (0,4),
+	# 	net._nodes[2] : (.5,3),
+	# 	net._nodes[3] : (.5,2),
+	# 	net._nodes[4] : (0,1),
+	# 	net._nodes[5] : (0,0),
+	# }
+	# plot_net_layerwise(net, ax=ax, positions=node_positions, x_spacing=.5, y_spacing=1)
+	# plt.savefig("plots/model_f%d_t%d_shortcut.png" % (args.fro, args.to))
+	# plt.close()
 
 	# plot mixing times
 	fig = plt.figure()
 	ax = fig.add_subplot(2,1,1)
 
-	idx = np.searchsorted(dependencies, 0.5)
-	dependencies = np.insert(dependencies, idx, 0.5)
-	mixing_times = np.insert(mixing_times, idx, mixing_time_half)
-
-	reasonable_times = mixing_times < 1000
-
+	# dashed 'baseline' line
 	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
 
-	ax.plot(dependencies[reasonable_times], mixing_times[reasonable_times], '-bo')
+	# plot MT_baseline
+	reasonable_times = mixing_times_base < 1000
+	reasonable_times[-1] = False # q=1.0 never really makes sense
+	ax.plot(dependencies[reasonable_times], mixing_times_base[reasonable_times], '-bo')
+	# plot MT_self
+	reasonable_times = mixing_times_self < 1000
+	reasonable_times[-1] = False # q=1.0 never really makes sense
+	ax.plot(dependencies[reasonable_times], mixing_times_self[reasonable_times], '--go')
 
-	plt.title('Effect of X%d-X%d Shortcut on Mixing Times' % (args.to, args.fro))
+	plt.title('X%d-X%d Shortcut' % (args.to, args.fro))
 	plt.ylabel('Mixing Time')
-	plt.legend(['no shortcut', 'shortcut'], loc='upper left')
 
 	yl = ax.get_ylim()
 	ax.set_ylim([0,yl[1]+5])
