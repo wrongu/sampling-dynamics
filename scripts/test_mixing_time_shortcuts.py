@@ -82,12 +82,14 @@ if args.plot:
 
 	# plot MT_baseline
 	reasonable_times = mixing_times_base < 1000
+	reasonable_times[-1] = False # q=1.0 never really makes sense
 	ax.plot(dependencies[reasonable_times], mixing_times_base[reasonable_times], '-bo')
 	# plot MT_self
 	reasonable_times = mixing_times_self < 1000
+	reasonable_times[-1] = False # q=1.0 never really makes sense
 	ax.plot(dependencies[reasonable_times], mixing_times_self[reasonable_times], '--go')
 
-	plt.title('Effect of X%d-X%d Shortcut on Mixing Times' % (args.to, args.fro))
+	plt.title('X%d-X%d Shortcut' % (args.to, args.fro))
 	plt.ylabel('Mixing Time')
 
 	yl = ax.get_ylim()
