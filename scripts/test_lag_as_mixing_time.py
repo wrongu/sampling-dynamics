@@ -84,6 +84,7 @@ if args.plot:
 	ax = fig.add_subplot(1,1,1)
 	for M in layers:
 		ax.plot(np.arange(M,args.m_max+1), mixing_time_by_layer[M-2:n_layers,M-2],'-o')
+	ax.set_xlim([0,args.m_max+1])
 	ax.set_ylim([0,40])
 	plt.xlabel('model depth')
 	plt.ylabel('mixing time')

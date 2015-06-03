@@ -10,15 +10,13 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', action='store_true', default=False)
-parser.add_argument('--target-baseline', dest='baseline', action='store_true', default=False)
+parser.add_argument('--plot-self', dest='plot_self', action='store_true', default=False)
 parser.add_argument('--steps', dest='steps', type=int, default=12)
 parser.add_argument('--q-min', dest='q_min', type=float, default=0.5)
 parser.add_argument('--q-max', dest='q_max', type=float, default=1.0)
 parser.add_argument('--eps', dest='eps', type=float, default=.05)
 parser.add_argument('--depth', dest='m', type=int, default=6)
 parser.add_argument('--marg', dest='marg', type=float, default=0.9)
-parser.add_argument('--fro', dest='fro', type=int, default=5)
-parser.add_argument('--to', dest='to', type=int, default=2)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
 args = parser.parse_args()
 
@@ -34,9 +32,9 @@ S_target_baseline = analytic_marginal_states(net_baseline, conditioned_on={ev: 1
 mixing_time_baseline, _ = mixing_time(S_start_baseline, S_target_baseline, A, eps=args.eps)
 print 'baseline', mixing_time_baseline
 
-def get_mixing_time_base_self(net, identifier):
+def get_mixing_time_base_self(net, fro, to, identifier):
 	ev = net.get_node_by_name('X1')
-	A_sc = load_or_run('transition_matrix_shortcuts_m%d_f%d_t%d_%s_ev1' % (args.m, args.fro, args.to, identifier),
+	A_sc = load_or_run('transition_matrix_shortcuts_m%d_f%d_t%d_%s_ev1' % (args.m, fro, to, identifier),
 		lambda: construct_markov_transition_matrix(net, conditioned_on={ev: 1}),
 		force_recompute=args.recompute)
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
@@ -46,68 +44,72 @@ def get_mixing_time_base_self(net, identifier):
 	mt_self,_ = mixing_time(S_start, S_steady_state, A_sc, eps=args.eps, converging_to=S_steady_state)
 	return (mt_base, mt_self)
 
-# get results for varying fro-to dependencies
-dependencies = np.linspace(args.q_min, args.q_max, args.steps) # AKA 'q'
-mixing_times_base = np.zeros(args.steps)
-mixing_times_self = np.zeros(args.steps)
-for i,dep in enumerate(dependencies):
-	cpt = np.array([[dep, 1-dep],[1-dep, dep]])
-	net = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt=cpt)
-	mixing_times_base[i], mixing_times_self[i] = get_mixing_time_base_self(net, 'dep%.3f' % dep)
-	print 'dep', dep, mixing_times_base[i]
+qs = np.linspace(args.q_min, args.q_max, args.steps)
+
+nodes = range(2,args.m+1)
+fro_to_pairs = [(fro,to) for fro,to in itertools.product(nodes, nodes) if fro-to>1]
+
+mixing_times_base = np.zeros((args.steps, len(fro_to_pairs)))
+mixing_times_self = np.zeros((args.steps, len(fro_to_pairs)))
+
+# shortcuts: all valid combinations of fro->to (where fro-to > 1)
+for pi, (fro,to) in enumerate(fro_to_pairs):
+	for qi,q in enumerate(qs):
+		cpt = np.array([[q, 1-q],[1-q, q]])
+		net = m_deep_with_shortcut(args.m, marg=args.marg, fro=fro, to=to, cpt=cpt)
+		mixing_times_base[qi,pi], mixing_times_self[qi,pi] = get_mixing_time_base_self(net, fro, to, 'dep%.3f' % q)
 
 if args.plot:
-	# from visualize import plot_net_layerwise
-	# # plot model
-	# fig = plt.figure()
-	# ax = fig.add_subplot(1,1,1)
-	# node_positions = {
-	# 	net._nodes[0] : (0,5),
-	# 	net._nodes[1] : (0,4),
-	# 	net._nodes[2] : (.5,3),
-	# 	net._nodes[3] : (.5,2),
-	# 	net._nodes[4] : (0,1),
-	# 	net._nodes[5] : (0,0),
-	# }
-	# plot_net_layerwise(net, ax=ax, positions=node_positions, x_spacing=.5, y_spacing=1)
-	# plt.savefig("plots/model_f%d_t%d_shortcut.png" % (args.fro, args.to))
-	# plt.close()
 
 	# plot mixing times
 	fig = plt.figure()
 	ax = fig.add_subplot(2,1,1)
 
-	# dashed 'baseline' line
-	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
+	markers = 'o^+D'
 
 	# plot MT_baseline
-	reasonable_times = mixing_times_base < 1000
-	reasonable_times[-1] = False # q=1.0 never really makes sense
-	ax.plot(dependencies[reasonable_times], mixing_times_base[reasonable_times], '-bo')
+	for pi,(fro,to) in enumerate(fro_to_pairs):
+		marker = markers[fro-to-2]
+		mts = mixing_times_base[:,pi]
+		reasonable_times = mts < 1000
+		reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
+		ax.plot(qs[reasonable_times], mts[reasonable_times], '-%c' % marker)
+	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs], loc='upper left', ncol=2)
 	# plot MT_self
-	reasonable_times = mixing_times_self < 1000
-	reasonable_times[-1] = False # q=1.0 never really makes sense
-	ax.plot(dependencies[reasonable_times], mixing_times_self[reasonable_times], '--go')
+	if args.plot_self:
+		ax.set_color_cycle(None)
+		for pi,(fro,to) in enumerate(fro_to_pairs):
+			marker = markers[fro-to-2]
+			mts = mixing_times_self[:,pi]
+			reasonable_times = mts < 1000
+			reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
+			ax.plot(qs[reasonable_times], mts[reasonable_times], '--%c' % marker)
 
-	plt.title('X%d-X%d Shortcut' % (args.to, args.fro))
-	plt.ylabel('Mixing Time')
+	# dashed 'baseline' line
+	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
+	ax.set_xlim([args.q_min, args.q_max])
+
+	plt.ylabel('mixing time')
 
 	yl = ax.get_ylim()
 	ax.set_ylim([0,yl[1]+5])
 
 	# plot TVD as function of q
 	ax = fig.add_subplot(2,1,2)
-	tvds = np.zeros(len(dependencies))
-	for i,dep in enumerate(dependencies):
-		cpt = np.array([[dep, 1-dep],[1-dep, dep]])
-		net = m_deep_with_shortcut(args.m, marg=args.marg, fro=args.fro, to=args.to, cpt=cpt)
-		ev = net.get_node_by_name('X1')
-		tvds[i] = variational_distance(S_target_baseline, analytic_marginal_states(net, conditioned_on={ev: 1}))
-	plt.plot(dependencies, tvds, '-ok')
-	plt.title('Change in Posterior')
+	tvds = np.zeros((len(qs), len(fro_to_pairs)))
+	for pi,(fro,to) in enumerate(fro_to_pairs):
+		for qi,q in enumerate(qs):
+			cpt = np.array([[q, 1-q],[1-q, q]])
+			net = m_deep_with_shortcut(args.m, marg=args.marg, fro=fro, to=to, cpt=cpt)
+			ev = net.get_node_by_name('X1')
+			tvds[qi,pi] = variational_distance(S_target_baseline, analytic_marginal_states(net, conditioned_on={ev: 1}))
+	for pi,(fro,to) in enumerate(fro_to_pairs):
+		marker = markers[fro-to-2]
+		plt.plot(qs[:-1], tvds[:-1,pi],'-%c' % marker)
+	ax.set_xlim([args.q_min, args.q_max])
 	plt.xlabel('q')
 	plt.ylabel('TVD from baseline')
 
-	plt.savefig('plots/shortcut_f%d_t%d_allplots.png' % (args.fro, args.to))
+	plt.savefig('plots/shortcut_allplots.png')
 	plt.close()
 
