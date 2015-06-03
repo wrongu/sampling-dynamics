@@ -143,88 +143,65 @@ if __name__ == '__main__':
 	parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
 	parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 	parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
-	parser.add_argument('--m-max', dest='m_max', type=int, default=7)
+	parser.add_argument('--m-max', dest='m_max', type=int, default=6)
+	parser.add_argument('--m-min', dest='m_min', type=int, default=2)
 	parser.add_argument('--samples', dest='samples', type=int, default=5000)
 	parser.add_argument('--T', dest='max_t', type=int, default=10000)
 	args = parser.parse_args()
 
+	Ms = range(args.m_min, args.m_max+1)
+
 	# Make plots that verify 'analytic' switching time algorithm (compare with sampling)
-	for m in range(2, args.m_max+1):
-		print m
-		net = m_deep_bistable(m, marg=args.marg)
-		p = net.get_node_by_name('X1').get_table()[0,0]
-		nodes = net._nodes
-		print '-init-'
-		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
-		S_start = analytic_recently_switched_states(net, top_node_percept, 0, A)
-		print '-sample-'
-		empirical = load_or_run('sampled_switching_times_M%d_p%.3f' % (m, p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
-		print '-analytic-'
-		analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=A, max_t=len(empirical))
+	# for m in Ms:
+	# 	print m
+	# 	net = m_deep_bistable(m, marg=args.marg)
+	# 	p = net.get_node_by_name('X1').get_table()[0,0]
+	# 	nodes = net._nodes
+	# 	print '-init-'
+	# 	A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m-1, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+	# 	S_start = analytic_recently_switched_states(net, top_node_percept, 0, A)
+	# 	print '-sample-'
+	# 	empirical = load_or_run('sampled_switching_times_M%d_p%.3f' % (m-1, p), lambda: sampled_switching_times(net, (top_node_percept, 1), trials=args.samples), force_recompute=args.recompute)
+	# 	print '-analytic-'
+	# 	analytic  = analytic_switching_times(net, S_start, (top_node_percept, 1), transition=A, max_t=len(empirical))
 		
-		if args.plot:
-			plt.figure()
-			plt.plot(analytic)
-			plt.plot(empirical)
-			plt.legend(['analytic', 'sample-approx'])
-			plt.savefig('plots/cmp_empirical_analytic_st_M%d.png' % m)
-			plt.close()
+	# 	if args.plot:
+	# 		plt.figure()
+	# 		plt.plot(analytic)
+	# 		plt.plot(empirical)
+	# 		plt.legend(['analytic', 'sample-approx'])
+	# 		plt.savefig('plots/cmp_empirical_analytic_st_M%d.png' % m)
+	# 		plt.close()
 
-	# Make plots of switching times (with percept defined as top node state)
-	switching_time_distributions = np.zeros((args.max_t, args.m_max-1))
+	switching_times_top = np.zeros((args.max_t, len(Ms)))
+	switching_times_majority = np.zeros((args.max_t, len(Ms)))
 	actual_max_t = 0
-	for m in range(2, args.m_max+1):
-		print m
+	for mi, m in enumerate(Ms):
 		net = m_deep_bistable(m, marg=args.marg)
 		p = net.get_node_by_name('X1').get_table()[0,0]
-		print '-transition-'
-		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
-		print '-init-'
+
+		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m-1, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
+		
+		# top node percept
 		S_init = analytic_recently_switched_states(net, top_node_percept, 0, A)
-		print '-analytic st-'
-		SW_distrib = analytic_switching_times(net, S_init, (top_node_percept, 1), transition=A, max_t=args.max_t)
-		actual_max_t = max(actual_max_t, len(SW_distrib))
-		switching_time_distributions[:len(SW_distrib),m-2] = SW_distrib
-	if args.plot:
-		plt.figure()
-		bar_width = 1. / (args.m_max-1)
-		colors = 'brgcmyk'
-		for i in range(2,args.m_max+1):
-			plt.bar(i*bar_width+np.arange(1,actual_max_t+1), switching_time_distributions[:actual_max_t,i-2],width=bar_width,color=colors[i-2])
-		plt.title('Analytic ST for various M')
-		plt.legend(['M = %d' % m for m in range(2, args.m_max+1)])
-		plt.xlabel('samples')
-		plt.ylabel('P(switch at t)')
-		plt.xlim([0,20])
-		plt.savefig('plots/analytic_ST_top.png')
-		plt.close()
-
-	# Make plots of switching times (with percept defined as majority state)
-	switching_time_distributions = np.zeros((args.max_t, args.m_max-1))
-	actual_max_t = 0
-	for m in range(2, args.m_max+1):
-		print m
-		net = m_deep_bistable(m, marg=args.marg)
-		p = net.get_node_by_name('X1').get_table()[0,0]
-		print '-transition-'
-		A = load_or_run('transition_matrix_M%d_p%.3f_noev' % (m, p), lambda: construct_markov_transition_matrix(net), force_recompute=args.recompute)
-		print '-init-'
+		distrib = analytic_switching_times(net, S_init, (top_node_percept, 1), transition=A, max_t=args.max_t)
+		actual_max_t = max(actual_max_t, len(distrib))
+		switching_times_top[:len(distrib), mi] = distrib
+		# majority percept
 		S_init = analytic_recently_switched_states(net, plurality_state, 0, A)
-		print '-analytic st-'
-		SW_distrib = analytic_switching_times(net, S_init, (plurality_state, 1), transition=A, max_t=args.max_t)
-		actual_max_t = max(actual_max_t, len(SW_distrib))
-		switching_time_distributions[:len(SW_distrib),m-2] = SW_distrib
+		distrib = analytic_switching_times(net, S_init, (plurality_state, 1), transition=A, max_t=args.max_t)
+		actual_max_t = max(actual_max_t, len(distrib))
+		switching_times_majority[:len(distrib), mi] = distrib
 	if args.plot:
 		plt.figure()
-		bar_width = 1. / (args.m_max-1)
-		colors = 'brgcmyk'
-		for i in range(2,args.m_max+1):
-			plt.bar(i*bar_width+np.arange(1,actual_max_t+1), switching_time_distributions[:actual_max_t,i-2],width=bar_width,color=colors[i-2])
-		plt.title('Analytic ST for various M (majority percept)')
-		plt.legend(['M = %d' % m for m in range(2, args.m_max+1)])
+		bar_width = .5 / len(Ms)
+		colors = 'brgyk'
+		for mi,m in enumerate(Ms):
+			plt.bar(2*mi*bar_width+np.arange(1,actual_max_t+1), switching_times_top[:actual_max_t, mi],width=bar_width,color=colors[mi])
+			plt.bar((2*mi+1)*bar_width+np.arange(1,actual_max_t+1), switching_times_majority[:actual_max_t, mi],width=bar_width,color=colors[mi],hatch='/')
 		plt.xlabel('samples')
 		plt.ylabel('P(switch at t)')
-		plt.xlim([0,20])
-		plt.savefig('plots/analytic_ST_majority.png')
+		plt.xlim([0,30])
+		plt.savefig('plots/switching_times.png')
 		plt.close()
 	
