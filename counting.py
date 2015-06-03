@@ -109,6 +109,13 @@ def steady_state(net, evidence, nodes, eps=0, M=10000, burnin=100):
 
 	return counts
 
+def eig_steadystate(A):
+	# steady state distribution of A_ff transition matrix is largest eigenvector (eigenvalue=1)
+	w,v = np.linalg.eig(A)
+	inds = np.argsort(w)
+	S_steady_state = np.abs(v[:,inds[-1]])
+	return normalized(S_steady_state, order=1)
+
 def flip_distribution_binary_nodes(net, S):
 	"""if S is a distribution over states {a,b}^net.size(),
 	this returns the inverted distribution with all a and b switched
