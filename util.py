@@ -19,4 +19,4 @@ def load_or_run(filename, function, subdir='saved_data', force_recompute=False, 
 def normalized(a, axis=-1, order=2):
     l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
     l2[l2==0] = 1
-    return a / np.expand_dims(l2, axis)
+    return np.reshape(a / np.expand_dims(l2, axis), a.shape)
