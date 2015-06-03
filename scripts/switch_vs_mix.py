@@ -54,8 +54,8 @@ if args.plot:
 	ax.scatter(mixing_times, switching_times_plural, marker='^', s=15)
 	for m,x,y in zip(Ms, mixing_times, switching_times_top):
 		ax.text(x+1,y,'M=%d' % m)
-	ax.set_xlabel('mean dominance time')
-	ax.set_ylabel('mixing time')
+	ax.set_ylabel('mean dominance time')
+	ax.set_xlabel('mixing time')
 	xl, yl = ax.get_xlim(), ax.get_ylim()
 	ax.set_ylim([0,yl[1]])
 	plt.savefig('plots/switch_vs_mix.png')
