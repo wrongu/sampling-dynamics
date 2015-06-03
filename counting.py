@@ -3,6 +3,7 @@ import itertools, operator
 from sampling import gibbs_sample
 from collections import defaultdict
 from scipy.misc import factorial as fact
+from util import normalized
 
 def count_states(net):
 	return np.prod([n.size() for n in net._nodes])
@@ -132,8 +133,7 @@ def analytic_marginal_states(net, conditioned_on={}):
 	for i in range(N):
 		id_to_state(net, i)
 		S[i]  = net.probability(conditioned_on)
-	S = S / S.sum()
-	return S
+	return normalized(S, order=1)
 
 def sample_marginal_states(net, evidence, samples, when=None):
 	"""Computes S[i] = vector of marginal probabilities that net is in state id i.
@@ -151,7 +151,7 @@ def sample_marginal_states(net, evidence, samples, when=None):
 
 	gibbs_sample(net, evidence, do_count_state, samples, 1)
 
-	return S / S.sum()
+	return normalized(S, order=1)
 
 def plurality_state(net):
 	counts = defaultdict(lambda: 0)
