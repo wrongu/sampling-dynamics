@@ -115,7 +115,7 @@ def sample_recently_switched_states(net, state_fn, max_iterations=50000):
 
 	return S / S.sum()
 
-def analytic_recently_switched_states(net, state_fn, state_at_t0, P=None):
+def analytic_recently_switched_states(net, state_fn, state_at_t0, A=None):
 	N = count_states(net)
 	if A is None: A = construct_markov_transition_matrix(net)
 
@@ -125,7 +125,7 @@ def analytic_recently_switched_states(net, state_fn, state_at_t0, P=None):
 	S = analytic_marginal_states(net)
 
 	# distribution over just-switched states (from S to S') is proportional to
-	# 	P(S=j)*P(S'=i|S=j)
+	# 	A(S=j)*A(S'=i|S=j)
 	# i.e. transition probability from marginal to any of state0_ids *but not from any state0_ids*
 	S_recently_switched = np.zeros(N)
 	S[state0_ids] = 0.
