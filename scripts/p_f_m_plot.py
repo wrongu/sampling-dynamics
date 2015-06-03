@@ -7,16 +7,16 @@ from models import compute_p_for_given_marginal
 
 # plot M vs p vor varying P
 
-Ps = [0.7, 0.8, 0.9]
-Ms = range(2,8)
+Ps = [0.9, 0.8, 0.7]
+Ms = range(2,7)
 
 plt.figure()
 for P in Ps:
 	ps = np.array([compute_p_for_given_marginal(m,P) for m in Ms])
 	plt.plot(Ms,ps,'-o')
-plt.legend(['P=%.1f' % P for P in Ps], loc='lower right')
-plt.title('Layer-wise-dependency (p) as function of depth')
+plt.xlim([0,7])
+plt.legend(['P=%.1f' % P for P in Ps], loc='upper left')
 plt.xlabel('Model depth')
-plt.ylabel('p')
+plt.ylabel('rho')
 plt.savefig('plots/p_f_m.png')
 plt.close()

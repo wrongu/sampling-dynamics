@@ -65,22 +65,29 @@ if args.plot:
 	fig = plt.figure()
 	ax = fig.add_subplot(2,1,1)
 
-	# dashed 'baseline' line
-	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
+	markers = 'o^+D'
 
 	# plot MT_baseline
-	for pi in range(len(fro_to_pairs)):
+	for pi,(fro,to) in enumerate(fro_to_pairs):
+		marker = markers[fro-to-2]
 		mts = mixing_times_base[:,pi]
 		reasonable_times = mts < 1000
-		ax.plot(qs[reasonable_times], mts[reasonable_times], '-o')
-	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs])
+		reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
+		ax.plot(qs[reasonable_times], mts[reasonable_times], '-%c' % marker)
+	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs], loc='upper left', ncol=2)
 	# plot MT_self
 	if args.plot_self:
 		ax.set_color_cycle(None)
-		for pi in range(len(fro_to_pairs)):
+		for pi,(fro,to) in enumerate(fro_to_pairs):
+			marker = markers[fro-to-2]
 			mts = mixing_times_self[:,pi]
 			reasonable_times = mts < 1000
-			ax.plot(qs[reasonable_times], mts[reasonable_times], '--o')
+			reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
+			ax.plot(qs[reasonable_times], mts[reasonable_times], '--%c' % marker)
+
+	# dashed 'baseline' line
+	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
+	ax.set_xlim([args.q_min, args.q_max])
 
 	plt.ylabel('mixing time')
 
@@ -96,9 +103,10 @@ if args.plot:
 			net = m_deep_with_shortcut(args.m, marg=args.marg, fro=fro, to=to, cpt=cpt)
 			ev = net.get_node_by_name('X1')
 			tvds[qi,pi] = variational_distance(S_target_baseline, analytic_marginal_states(net, conditioned_on={ev: 1}))
-	for pi in range(len(fro_to_pairs)):
-		plt.plot(qs, tvds[:,pi])
-	plt.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs])
+	for pi,(fro,to) in enumerate(fro_to_pairs):
+		marker = markers[fro-to-2]
+		plt.plot(qs[:-1], tvds[:-1,pi],'-%c' % marker)
+	ax.set_xlim([args.q_min, args.q_max])
 	plt.xlabel('q')
 	plt.ylabel('TVD from baseline')
 
