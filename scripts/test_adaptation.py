@@ -82,7 +82,6 @@ if args.plot:
 
 		ax.plot(xl,[mixing_times_true[-1,mi]]*2, '--k')
 
-		plt.title('Mixing Times with Adaptation')
 		ax.set_ylabel('mixing time')
 
 		# TVD Plot
@@ -97,9 +96,9 @@ if args.plot:
 				eig_steadystate(A_adapt))
 
 		ax.plot(taus, tvds, '-ok')
-		plt.title('Change in Posterior with Adaptation')
 		ax.set_xlabel('tau')
 		ax.set_ylabel('TVD from baseline')
+		ax.set_xlim(xl)
 
 		plt.savefig('plots/adapt_allplots_m%d.png' % m)
 		plt.close()
