@@ -69,13 +69,14 @@ if args.plot:
 	for mi,m in enumerate(Ms):
 		fig = plt.figure()
 		ax = fig.add_subplot(1,1,1)
-		for t in Ts:
-			ax.plot(alphas, mixing_times[:,t,mi], '-o')
+		for t in Ts[1:]:
+			ax.plot(alphas, mixing_times[:,t,mi], '-o', label='%d' % t)
+		# plot baseline mixing time as black dashed line
+		ax.plot([min(alphas),max(alphas)], [mixing_times[0,0,mi]]*2, '--k')
 		ax.set_ylim([0,mixing_times.max()+5])
-		ax.legend(['baseline'] + ['%d steps' % t for t in Ts[1:]], loc='upper right')
+		ax.legend(loc='upper right')
 		ax.set_xlabel('alpha')
 		ax.set_ylabel('mixing time')
-		plt.title('Mixing Time reductions as function of alpha, m = %d' % m)
 		plt.savefig('plots/transient_m%d.png' % m)
 		plt.close()
 
