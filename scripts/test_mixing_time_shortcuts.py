@@ -74,7 +74,7 @@ if args.plot:
 		reasonable_times = mts < 1000
 		reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
 		ax.plot(qs[reasonable_times], mts[reasonable_times], '-%c' % marker)
-	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs], loc='upper left', ncol=2)
+	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs], loc='lower left', ncol=2)
 	# plot MT_self
 	if args.plot_self:
 		ax.set_color_cycle(None)
@@ -88,6 +88,7 @@ if args.plot:
 	# dashed 'baseline' line
 	ax.plot([args.q_min, args.q_max], [mixing_time_baseline]*2, '--k')
 	ax.set_xlim([args.q_min, args.q_max])
+	ax.set_ylim([0,50])
 
 	plt.ylabel('mixing time')
 
