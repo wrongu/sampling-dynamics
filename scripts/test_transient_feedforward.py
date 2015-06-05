@@ -74,7 +74,7 @@ if args.plot:
 		# plot baseline mixing time as black dashed line
 		ax.plot([min(alphas),max(alphas)], [mixing_times[0,0,mi]]*2, '--k')
 		ax.set_ylim([0,mixing_times.max()+5])
-		ax.legend(loc='upper right')
+		ax.legend(loc='center right', ncol=2)
 		ax.set_xlabel('alpha')
 		ax.set_ylabel('mixing time')
 		plt.savefig('plots/transient_m%d.png' % m)
@@ -99,7 +99,6 @@ if args.plot:
 			tvds[ai] = variational_distance(S_baseline, S_ff_steady_state)
 		ax.plot(alphas, tvds, '-o')
 		ax.set_xlabel('alpha')
-		ax.set_ylabel('total variational distance')
-		plt.title('Total Variational Distance of steady states A vs A_ff')
+		ax.set_ylabel('TVD from baseline')
 		plt.savefig('plots/transient_tvd_m%d.png' % m)
 		plt.close()
