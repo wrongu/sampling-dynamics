@@ -253,10 +253,11 @@ class BayesNet(DiGraph):
 			self._verified = self.check_cpts()
 		return self._verified
 
-	def markov_blanket_marginal(self, node, fatigue_tau=None):
+	def markov_blanket_marginal(self, node, fatigue_tau=None, feedforward=1.0):
 		"""compute the marginal probability of the requested node conditioned on its (observed)
 		Markov Blanket. The distribution is returned as a vector parallel to node._state
 		"""
+		if feedforward is None: feedforward = 1.0
 		# product of probabilities is done as sums in log space (to preserve precision);
 		# the returned vector is not in log space, however
 		cpt = np.log(node.get_table())
@@ -294,7 +295,10 @@ class BayesNet(DiGraph):
 			table = table[explanations_slice]
 
 			# here, table is reduced to possible explanations of child with respect to node
-			cpt = cpt + np.log(table.reshape(*cpt.shape))
+			# ...where child effects are raised to the 'feedforward' exponent (implementing a
+			# kind of boost to the feedforward signal if it is > 1) (i.e. multiplied in log space)
+			# which is fine to do since normalization is done at the end of this function
+			cpt = cpt + feedforward * np.log(table.reshape(*cpt.shape))
 
 		distrib = np.exp(cpt.reshape(node.size()))
 

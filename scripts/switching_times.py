@@ -148,6 +148,8 @@ if __name__ == '__main__':
 	parser.add_argument('--T', dest='max_t', type=int, default=10000)
 	args = parser.parse_args()
 
+	Ms = range(args.m_min, args.m_max+1)
+
 	# Make plots that verify 'analytic' switching time algorithm (compare with sampling)
 	# 	net = m_deep_bistable(args.m, marg=args.marg)
 	# 	p = net.get_node_by_name('X1').get_table()[0,0]

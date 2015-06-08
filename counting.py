@@ -52,7 +52,7 @@ def id_subset(net, where, value=True):
 	net.evidence(tmp)
 	return ids[:m]
 
-def transition_probability(net, state1, state2, sample_order, conditioned_on={}, fatigue_tau=None):
+def transition_probability(net, state1, state2, sample_order, conditioned_on={}, fatigue_tau=None, feedforward_boost=None):
 	tmp = net.state_map()
 	p = 1.0
 
@@ -66,13 +66,13 @@ def transition_probability(net, state1, state2, sample_order, conditioned_on={},
 			else:
 				pass # implicitly multiplying p by 1
 		else:
-			node_marginal = net.markov_blanket_marginal(n, fatigue_tau)
+			node_marginal = net.markov_blanket_marginal(n, fatigue_tau=fatigue_tau, feedforward=feedforward_boost)
 			p *= node_marginal[n._states.index(state2[i])]
 			n.set_value(state2[i])
 	net.evidence(tmp)
 	return p
 
-def construct_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None):
+def construct_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None, feedforward_boost=None):
 	tmp = net.state_map()
 	n_states = count_states(net)
 
@@ -87,7 +87,7 @@ def construct_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None)
 	u = 1.0 / fact(len(net._nodes))
 	for ns in orderings:
 		for i,j in itertools.product(range(n_states), range(n_states)):
-			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on, fatigue_tau)
+			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on, fatigue_tau, feedforward_boost)
 
 	net.evidence(tmp)
 	return A

@@ -74,7 +74,7 @@ if args.plot:
 		reasonable_times = mts < 1000
 		reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
 		ax.plot(qs[reasonable_times], mts[reasonable_times], '-%c' % marker, label='$x_%d-x_%d$' % (fro,to))
-	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs], loc='lower left', ncol=2)
+	ax.legend(loc='lower left', ncol=2)
 	# plot MT_self
 	if args.plot_self:
 		ax.set_color_cycle(None)
@@ -93,7 +93,7 @@ if args.plot:
 	plt.ylabel('mixing time')
 
 	yl = ax.get_ylim()
-	ax.set_ylim([0,yl[1]+5])
+	ax.set_ylim([0,50])
 
 	# plot TVD as function of q
 	ax = fig.add_subplot(2,1,2)
@@ -108,6 +108,7 @@ if args.plot:
 		marker = markers[fro-to-2]
 		plt.plot(qs[:-1], tvds[:-1,pi],'-%c' % marker)
 	ax.set_xlim([args.q_min, args.q_max])
+	ax.set_ylim([0,0.35]) # same as in adaptation model
 	plt.xlabel('q')
 	plt.ylabel('TVD from baseline')
 
