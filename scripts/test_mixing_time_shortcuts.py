@@ -73,7 +73,7 @@ if args.plot:
 		mts = mixing_times_base[:,pi]
 		reasonable_times = mts < 1000
 		reasonable_times[-1] = False # q=1.0 is distracting and not actually useful
-		ax.plot(qs[reasonable_times], mts[reasonable_times], '-%c' % marker)
+		ax.plot(qs[reasonable_times], mts[reasonable_times], '-%c' % marker, label='$x_%d-x_%d$' % (fro,to))
 	ax.legend(['%d->%d' % (fro,to) for fro,to in fro_to_pairs], loc='lower left', ncol=2)
 	# plot MT_self
 	if args.plot_self:

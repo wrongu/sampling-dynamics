@@ -253,7 +253,7 @@ class BayesNet(DiGraph):
 			self._verified = self.check_cpts()
 		return self._verified
 
-	def markov_blanket_marginal(self, node):
+	def markov_blanket_marginal(self, node, fatigue_tau=None):
 		"""compute the marginal probability of the requested node conditioned on its (observed)
 		Markov Blanket. The distribution is returned as a vector parallel to node._state
 		"""
@@ -297,6 +297,12 @@ class BayesNet(DiGraph):
 			cpt = cpt + np.log(table.reshape(*cpt.shape))
 
 		distrib = np.exp(cpt.reshape(node.size()))
+
+		if fatigue_tau is not None:
+			# TODO generalize beyond binary?
+			distrib[node.state_index()] *= fatigue_tau
+			distrib[1-node.state_index()] *= (1-fatigue_tau)
+
 		return distrib / float(distrib.sum())
 
 	def sample_node(self, node):
