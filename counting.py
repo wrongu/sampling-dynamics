@@ -23,12 +23,14 @@ def state_to_id(net, state_vector=None):
 		last_size = n.size()
 	return _id
 
-def id_to_state(net, _id):
+def id_to_state(net, _id, conditioned_on={}):
 	"""inverse of state_to_id
 	"""
 	for i,n in enumerate(net.iter_nodes_reversed()):
 		n.set_value_by_index(_id % n.size())
 		_id = int(_id / n.size())
+	
+	net.evidence(conditioned_on)
 
 	return net.state_vector()
 
@@ -88,6 +90,40 @@ def construct_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None,
 	for ns in orderings:
 		for i,j in itertools.product(range(n_states), range(n_states)):
 			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on, fatigue_tau, feedforward_boost)
+
+	net.evidence(tmp)
+	return A
+
+def construct_sparse_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None, feedforward_boost=None):
+	tmp = net.state_map()
+	n_states = count_states(net)
+
+	if n_states > 512:
+		ans = raw_input("really compute full %dx%d transition matrix? [y/N]  " % (n_states, n_states))
+		if ans[0] not in "yY":
+			return
+
+	A = np.zeros((n_states, n_states))
+
+	# enumerate starting states
+	for i in xrange(n_states):
+		s_start = id_to_state(net, i, conditioned_on) # puts net in state i *then sets evidence to conditioned_on*
+		# enumerate single nodes, compute p(change to val) for each value the nodes can take on
+		for (node_idx, change_node) in enumerate(net.iter_nodes()):
+			# s_end begins as a copy of s_start
+			s_end = [val for val in s_start]
+			# now enumerate values change_node could take on, and alter s_end[node_idx] for each one
+			# (note that this will include s_end=s_start and fill out the diagonal of A)
+			for val in change_node._states:
+				s_end[node_idx] = val
+				j = state_to_id(net, s_end)
+				# get transition probability *where only change_node is sampled* (i.e. glauber dynamics)
+				A[j][i] += transition_probability(net, s_start, s_end, [(node_idx, change_node)], conditioned_on, fatigue_tau, feedforward_boost)
+
+	# normalize columns (every state must go somewhere)
+	for i in xrange(n_states):
+		if A[:,i].sum() > 0:
+			A[:,i] /= A[:,i].sum()
 
 	net.evidence(tmp)
 	return A
@@ -203,6 +239,7 @@ def mixing_time(start, target, transition, eps=0.05, max_t=1000, converging_to=N
 	while d >= eps:
 		i = i+1
 		S = np.dot(transition, S)
+		S = S / S.sum()
 		d = variational_distance(target, S)
 		vds[i] = d
 		if i == max_t:
