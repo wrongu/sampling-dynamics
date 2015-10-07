@@ -11,6 +11,7 @@ from counting import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
+parser.add_argument('--glauber', dest='glauber', action='store_true', default=False)
 parser.add_argument('--compare-p', dest='cmp_p', action='store_true', default=False)
 parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
@@ -23,14 +24,16 @@ max_t = 1000
 m_min = 2
 n_layers = args.m_max - m_min + 1
 layers = range(m_min, args.m_max+1)
+method = 'glauber' if args.glauber else 'permutations'
+method_prefix = 'sparse_' if args.glauber else ''
 
 mixing_times = np.zeros(n_layers)
 for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
-	A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (M, p),
-		lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}),
+	A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, p),
+		lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}, method=method),
 		force_recompute=args.recompute)
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
@@ -38,6 +41,7 @@ for M in layers:
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 	mixing_times[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps)
+	if args.glauber: mixing_times[M-m_min] /= M
 
 if args.cmp_p:
 	p = 0.96
@@ -45,8 +49,8 @@ if args.cmp_p:
 	for M in layers:
 		net = m_deep_bistable(M, p=0.96)
 		ev = net.get_node_by_name('X1')
-		A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (M, p),
-			lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}),
+		A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, p),
+			lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}, method=method),
 			force_recompute=args.recompute)
 
 		# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
@@ -54,6 +58,7 @@ if args.cmp_p:
 		S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 		mixing_times_rho_const[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps)
+		if args.glauber: mixing_times_rho_const[M-m_min] /= M
 
 if args.plot:
 	fig = plt.figure()
@@ -75,7 +80,8 @@ for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
 	p = ev.get_table()[0,0]
-	A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}))
+	A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, p), 
+		lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}, method=method))
 
 	# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 	S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
@@ -97,6 +103,7 @@ for M in layers:
 			d = variational_distance(marg, node_marginal_target)
 
 		mixing_time_by_layer[M-m_min,layer-m_min] = i
+		if args.glauber: mixing_time_by_layer[M-m_min,layer-m_min] /= M
 
 if args.cmp_p:
 	p = 0.96
@@ -104,7 +111,8 @@ if args.cmp_p:
 	for M in layers:
 		net = m_deep_bistable(M, p)
 		ev = net.get_node_by_name('X1')
-		A = load_or_run('transition_matrix_M%d_p%.3f_ev1' % (M, p), lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}))
+		A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, p), 
+			lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}, method=method))
 
 		# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
 		S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
@@ -126,6 +134,7 @@ if args.cmp_p:
 				d = variational_distance(marg, node_marginal_target)
 
 			mixing_times_by_layer_rho_const[M-m_min,layer-m_min] = i
+			if args.glauber: mixing_times_by_layer_rho_const[M-m_min,layer-m_min] /= M
 
 if args.plot:
 	fig = plt.figure()
@@ -140,7 +149,7 @@ if args.plot:
 	ax.set_xlim([0,args.m_max+1])
 	ax.set_ylim([0,40])
 	plt.xlabel('model depth')
-	plt.ylabel('mixing time')
+	plt.ylabel('mixing time (%s)' % method)
 	plt.legend(loc='upper left')
 	plt.savefig('plots/mixing_time_by_layer.png')
 	plt.close()
