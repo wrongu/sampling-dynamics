@@ -74,51 +74,39 @@ def transition_probability(net, state1, state2, sample_order, conditioned_on={},
 	net.evidence(tmp)
 	return p
 
-def construct_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None, feedforward_boost=None):
+def construct_markov_transition_matrix(net, conditioned_on={}, method='permutations', fatigue_tau=None, feedforward_boost=None):
 	tmp = net.state_map()
 	n_states = count_states(net)
 
-	if n_states > 128:
+	if n_states > 512:
 		ans = raw_input("really compute full %dx%d transition matrix over %d permutations? [y/N]  " % (n_states, n_states, fact(len(net._nodes))))
 		if ans[0] not in "yY":
 			return
 
 	A = np.zeros((n_states, n_states))
 
-	orderings = itertools.permutations(enumerate(net.iter_nodes()))
-	u = 1.0 / fact(len(net._nodes))
-	for ns in orderings:
-		for i,j in itertools.product(range(n_states), range(n_states)):
-			A[i][j] += u * transition_probability(net, id_to_state(net, j), id_to_state(net, i), ns, conditioned_on, fatigue_tau, feedforward_boost)
+	if method == 'permutations':
+		orderings = itertools.permutations(enumerate(net.iter_nodes()))
+		u = 1.0 / fact(len(net._nodes))
+		for ns in orderings:
+			for i,j in itertools.product(range(n_states), range(n_states)):
+				A[j][i] += u * transition_probability(net, id_to_state(net, i), id_to_state(net, j), ns, conditioned_on, fatigue_tau, feedforward_boost)
 
-	net.evidence(tmp)
-	return A
-
-def construct_sparse_markov_transition_matrix(net, conditioned_on={}, fatigue_tau=None, feedforward_boost=None):
-	tmp = net.state_map()
-	n_states = count_states(net)
-
-	if n_states > 512:
-		ans = raw_input("really compute full %dx%d transition matrix? [y/N]  " % (n_states, n_states))
-		if ans[0] not in "yY":
-			return
-
-	A = np.zeros((n_states, n_states))
-
-	# enumerate starting states
-	for i in xrange(n_states):
-		s_start = id_to_state(net, i, conditioned_on) # puts net in state i *then sets evidence to conditioned_on*
-		# enumerate single nodes, compute p(change to val) for each value the nodes can take on
-		for (node_idx, change_node) in enumerate(net.iter_nodes()):
-			# s_end begins as a copy of s_start
-			s_end = [val for val in s_start]
-			# now enumerate values change_node could take on, and alter s_end[node_idx] for each one
-			# (note that this will include s_end=s_start and fill out the diagonal of A)
-			for val in change_node._states:
-				s_end[node_idx] = val
-				j = state_to_id(net, s_end)
-				# get transition probability *where only change_node is sampled* (i.e. glauber dynamics)
-				A[j][i] += transition_probability(net, s_start, s_end, [(node_idx, change_node)], conditioned_on, fatigue_tau, feedforward_boost)
+	elif method == 'glauber':
+		# enumerate starting states
+		for i in xrange(n_states):
+			s_start = id_to_state(net, i, conditioned_on) # puts net in state i *then sets evidence to conditioned_on*
+			# enumerate single nodes, compute p(change to val) for each value the nodes can take on
+			for (node_idx, change_node) in enumerate(net.iter_nodes()):
+				# s_end begins as a copy of s_start
+				s_end = [val for val in s_start]
+				# now enumerate values change_node could take on, and alter s_end[node_idx] for each one
+				# (note that this will include s_end=s_start and fill out the diagonal of A)
+				for val in change_node._states:
+					s_end[node_idx] = val
+					j = state_to_id(net, s_end)
+					# get transition probability *where only change_node is sampled* (i.e. glauber dynamics)
+					A[j][i] += transition_probability(net, s_start, s_end, [(node_idx, change_node)], conditioned_on, fatigue_tau, feedforward_boost)
 
 	# normalize columns (every state must go somewhere)
 	for i in xrange(n_states):
