@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
 parser.add_argument('--glauber', dest='glauber', action='store_true', default=False)
 parser.add_argument('--compare-p', dest='cmp_p', action='store_true', default=False)
+parser.add_argument('--p', dest='p', type=float, default=0.93)
 parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
 parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
@@ -44,12 +45,11 @@ for M in layers:
 	if args.glauber: mixing_times[M-m_min] /= M
 
 if args.cmp_p:
-	p = 0.96
 	mixing_times_rho_const = np.zeros(n_layers)
 	for M in layers:
-		net = m_deep_bistable(M, p=0.96)
+		net = m_deep_bistable(M, p=args.p)
 		ev = net.get_node_by_name('X1')
-		A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, p),
+		A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, args.p),
 			lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}, method=method),
 			force_recompute=args.recompute)
 
@@ -57,7 +57,7 @@ if args.cmp_p:
 		S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 		S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
-		mixing_times_rho_const[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps)
+		mixing_times_rho_const[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps, pt=False)
 		if args.glauber: mixing_times_rho_const[M-m_min] /= M
 
 if args.plot:
@@ -66,9 +66,8 @@ if args.plot:
 	plt.plot(layers, mixing_times, '-bo')
 	if args.cmp_p:
 		plt.plot(layers, mixing_times_rho_const, '--b^')
-		plt.legend(['P constant', 'rho constant'], loc='lower right')
+		plt.legend(['P constant', 'rho constant'], loc='upper left')
 	ax.set_xlim([0,args.m_max+1])
-	ax.set_ylim([0,40])
 	plt.xlabel('model depth')
 	plt.ylabel('mixing time')
 	plt.savefig('plots/mixing_time.png')
@@ -106,12 +105,11 @@ for M in layers:
 		if args.glauber: mixing_time_by_layer[M-m_min,layer-m_min] /= M
 
 if args.cmp_p:
-	p = 0.96
 	mixing_times_by_layer_rho_const = np.zeros((n_layers, n_layers))
 	for M in layers:
-		net = m_deep_bistable(M, p)
+		net = m_deep_bistable(M, p=args.p)
 		ev = net.get_node_by_name('X1')
-		A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, p), 
+		A = load_or_run('%stransition_matrix_M%d_p%.3f_ev1' % (method_prefix, M, args.p), 
 			lambda: construct_markov_transition_matrix(net, conditioned_on={ev:1}, method=method))
 
 		# S_start and S_target are marginal distributions conditioned on {ev:0} and {ev:1} respectively.
@@ -147,7 +145,6 @@ if args.plot:
 			ax.plot(np.arange(M,args.m_max+1), mixing_times_by_layer_rho_const[M-2:n_layers,M-2],'--^')
 
 	ax.set_xlim([0,args.m_max+1])
-	ax.set_ylim([0,40])
 	plt.xlabel('model depth')
 	plt.ylabel('mixing time (%s)' % method)
 	plt.legend(loc='upper left')

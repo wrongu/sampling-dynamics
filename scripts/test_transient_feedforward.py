@@ -81,7 +81,7 @@ if args.plot:
 			ax.plot(alphas, mixing_times[:,t,mi], '-o', label='%d' % t)
 		# plot baseline mixing time as black dashed line
 		ax.plot([min(alphas),max(alphas)], [mixing_times[0,0,mi]]*2, '--k')
-		ax.set_ylim([0,mixing_times.max()+5])
+		# ax.set_ylim([0,mixing_times.max()+5])
 		ax.legend(loc='center right', ncol=2)
 		ax.set_xlabel('alpha')
 		ax.set_ylabel('mixing time')
