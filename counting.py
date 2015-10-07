@@ -233,3 +233,103 @@ def mixing_time(start, target, transition, eps=0.05, max_t=1000, converging_to=N
 		if i == max_t:
 			break
 	return i, vds
+
+def coupling_from_past(net, iterations=100):
+	"""Perform 'iterations' samples of mixing time using the Coupling From the Past method,
+	returning a numpy vector of all the sampled values
+
+	An estimate of mixing time is achieved when a preset sequence of MCMC steps converges
+	to a constant function, but we can only "add" to our list of steps backwards in time.
+	The sequence of steps can be thought of as the composition of a series of deterministic
+	functions, each of which was randomly chosen.
+
+	"update(i,r)" is the deterministic function that udates node i based on the random value r.
+	"compose(i_list, r_list)" essentially implements MCMC by applying update() over and over.
+
+	Operations are done in-place on the given net, making the code look strange.
+	"""
+	tmp = net.state_map()
+
+	def update(i, r):
+		node = net._nodes[i]
+		marg = net.markov_blanket_marginal(node)
+		# new value chosen by inverting the CDF
+		# [any distribution can be sampled from by taking CDF^-1(value in [0,1])]
+		# r is our (deterministic) choice for that value. this loop finds
+		# where the CDF for node i goes above r
+		cdf = 0
+		for idx,prob in enumerate(marg):
+			cdf += prob
+			if r < cdf:
+				break
+		node.set_value_by_index(idx)
+
+	def min_net():
+		"""set net to 'minimum' value
+		"""
+		for n in net.iter_nodes():
+			n.set_value_by_index(0)
+
+	def max_net():
+		"""set net to 'minimum' value
+		"""
+		for n in net.iter_nodes():
+			n.set_value_by_index(n.size()-1)
+
+	def compose(i_list, r_list):
+		for i,r in itertools.izip(i_list, r_list):
+			update(i,r)
+
+	def composition_is_constant(i_list, r_list):
+		# see where we get to from the 'min' net
+		min_net(); compose(i_list, r_list)
+		result_from_min = net.state_vector()
+		# see where we get to from the 'max' net
+		max_net(); compose(i_list, r_list)
+		result_from_max = net.state_vector()
+		# composition is constant iff these two extreme cases are equal
+		# (having assumed that the 'net' has monotone coupling)
+		return result_from_min == result_from_max
+
+	T_samples = np.zeros(iterations)
+	N = len(net._nodes)
+	for itr in xrange(iterations):
+		ii = [np.random.randint(N)]
+		rr = [np.random.rand()]
+		# exponentially increase 'upper bound' until composition 'g' is constant.
+		while not composition_is_constant(ii, rr):
+			# double length of ii and rr, *prepending*
+			ii = [np.random.randint(N) for _ in xrange(len(ii))] + ii
+			rr = [np.random.rand() for _ in xrange(len(rr))] + rr
+		L = len(ii)
+
+		# narrow with binary search to get T exactly. IE there is a point where
+		# things stop being constant (here, T = the number of '_' = 9):
+		#
+		#     [C C C C C C C _ _ _ _ _ _ _ _ _] 
+		#      ^             ^
+		#     max           min
+		#
+		# We also know we're looking in the first half of the array, since on the 2nd to last
+		# iteration of the above while loop things *werent* constant but on the last they were.
+		#
+		# As T increases, we start at smaller and smaller indexes in ii and rr, which is why
+		# 	idx = L - test
+		# looks backwards.
+
+		min_T, max_T = L/2, L
+		while min_T < max_T:
+			test = (min_T + max_T) / 2
+			# we will use ii[idx:] and rr[idx:] such that len(ii[idx:])==test
+			idx = L - test
+			# if constant up to 'test', then T must have been even sooner than test.
+			if composition_is_constant(ii[idx:], rr[idx:]):
+				max_T = test
+			# otherwise, still not constant at test, so T must have been bigger
+			else:
+				min_T = test+1
+		# min_T and max_T have converged - we now have a value for T!
+		T_samples[itr] = min_T
+
+	net.evidence(tmp)
+	return T_samples
