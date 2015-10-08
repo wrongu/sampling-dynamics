@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', dest='recompute', action='store_true', default=False)
 parser.add_argument('--glauber', dest='glauber', action='store_true', default=False)
 parser.add_argument('--compare-p', dest='cmp_p', action='store_true', default=False)
+parser.add_argument('--cfp-iter', dest='cfp_iter', type=int, default=500)
 parser.add_argument('--p', dest='p', type=float, default=0.93)
 parser.add_argument('--marg', dest='marg', type=float, default=0.9)
 parser.add_argument('--eps', dest='eps', type=float, default=0.05)
@@ -29,6 +30,10 @@ method = 'glauber' if args.glauber else 'permutations'
 method_prefix = 'sparse_' if args.glauber else ''
 
 mixing_times = np.zeros(n_layers)
+# 'cfp' is 'coupling from the past'
+mt_cfp = np.zeros(n_layers)
+mt_cfp_var = np.zeros(n_layers)
+
 for M in layers:
 	net = m_deep_bistable(M, marg=args.marg)
 	ev = net.get_node_by_name('X1')
@@ -42,10 +47,19 @@ for M in layers:
 	S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
 	mixing_times[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps)
-	if args.glauber: mixing_times[M-m_min] /= M
+	if args.glauber:
+		mixing_times[M-m_min] /= M
+		# get MT estimate from coupling from the past algorithm
+		Ts = load_or_run('CFP_mt_samples_M%d_p%.3f_ev1' % (M, p),
+			lambda: coupling_from_past(net, iterations=args.cfp_iter) / M,
+			force_recompute=args.recompute)
+		mt_cfp[M-m_min] = Ts.mean()
+		mt_cfp_var[M-m_min] = Ts.var(ddof=1)
 
 if args.cmp_p:
 	mixing_times_rho_const = np.zeros(n_layers)
+	mt_cfp_rho_const = np.zeros(n_layers)
+	mt_cfp_var_rho_const = np.zeros(n_layers)
 	for M in layers:
 		net = m_deep_bistable(M, p=args.p)
 		ev = net.get_node_by_name('X1')
@@ -57,8 +71,15 @@ if args.cmp_p:
 		S_start  = analytic_marginal_states(net, conditioned_on={ev: 0})
 		S_target = analytic_marginal_states(net, conditioned_on={ev: 1})
 
-		mixing_times_rho_const[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps, pt=False)
-		if args.glauber: mixing_times_rho_const[M-m_min] /= M
+		mixing_times_rho_const[M-m_min], _ = mixing_time(S_start, S_target, A, eps=args.eps)
+		if args.glauber:
+			mixing_times_rho_const[M-m_min] /= M
+			# get MT estimate from coupling from the past algorithm
+			Ts = load_or_run('CFP_mt_samples_M%d_p%.3f_ev1' % (M, args.p),
+				lambda: coupling_from_past(net, iterations=args.cfp_iter) / M,
+				force_recompute=args.recompute)
+			mt_cfp_rho_const[M-m_min] = Ts.mean()
+			mt_cfp_var_rho_const[M-m_min] = Ts.var(ddof=1)
 
 if args.plot:
 	fig = plt.figure()
@@ -67,6 +88,12 @@ if args.plot:
 	if args.cmp_p:
 		plt.plot(layers, mixing_times_rho_const, '--b^')
 		plt.legend(['P constant', 'rho constant'], loc='upper left')
+
+	if args.glauber:
+		plt.errorbar(layers, mt_cfp, yerr=mt_cfp_var, fmt='-ro')
+		if args.cmp_p:
+			plt.errorbar(layers, mt_cfp_rho_const, yerr=mt_cfp_var_rho_const, fmt='-r^')
+
 	ax.set_xlim([0,args.m_max+1])
 	plt.xlabel('model depth')
 	plt.ylabel('mixing time')
