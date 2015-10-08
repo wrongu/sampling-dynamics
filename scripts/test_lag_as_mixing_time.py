@@ -90,9 +90,9 @@ if args.plot:
 		plt.legend(['P constant', 'rho constant'], loc='upper left')
 
 	if args.glauber:
-		plt.errorbar(layers, mt_cfp, yerr=mt_cfp_var, fmt='-ro')
+		plt.plot(layers, mt_cfp, '-ro')
 		if args.cmp_p:
-			plt.errorbar(layers, mt_cfp_rho_const, yerr=mt_cfp_var_rho_const, fmt='-r^')
+			plt.plot(layers, mt_cfp_rho_const, '-r^')
 
 	ax.set_xlim([0,args.m_max+1])
 	plt.xlabel('model depth')
