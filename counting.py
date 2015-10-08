@@ -83,10 +83,12 @@ def construct_markov_transition_matrix(net, conditioned_on={}, method='permutati
 		if ans[0] not in "yY":
 			return
 
+	sampleable_nodes = [n for n in net.iter_nodes() if n not in conditioned_on]
+
 	A = np.zeros((n_states, n_states))
 
 	if method == 'permutations':
-		orderings = itertools.permutations(enumerate(net.iter_nodes()))
+		orderings = itertools.permutations(enumerate(sampleable_nodes))
 		u = 1.0 / fact(len(net._nodes))
 		for ns in orderings:
 			for i,j in itertools.product(range(n_states), range(n_states)):
@@ -97,7 +99,7 @@ def construct_markov_transition_matrix(net, conditioned_on={}, method='permutati
 		for i in xrange(n_states):
 			s_start = id_to_state(net, i, conditioned_on) # puts net in state i *then sets evidence to conditioned_on*
 			# enumerate single nodes, compute p(change to val) for each value the nodes can take on
-			for (node_idx, change_node) in enumerate(net.iter_nodes()):
+			for (node_idx, change_node) in enumerate(sampleable_nodes):
 				# s_end begins as a copy of s_start
 				s_end = [val for val in s_start]
 				# now enumerate values change_node could take on, and alter s_end[node_idx] for each one
@@ -234,7 +236,7 @@ def mixing_time(start, target, transition, eps=0.05, max_t=1000, converging_to=N
 			break
 	return i, vds
 
-def coupling_from_past(net, iterations=100):
+def coupling_from_past(net, conditioned_on={}, iterations=100):
 	"""Perform 'iterations' samples of mixing time using the Coupling From the Past method,
 	returning a numpy vector of all the sampled values
 
@@ -249,9 +251,12 @@ def coupling_from_past(net, iterations=100):
 	Operations are done in-place on the given net, making the code look strange.
 	"""
 	tmp = net.state_map()
+	net.evidence(conditioned_on)
+
+	sampleable_nodes = [n for n in net.iter_nodes() if n not in conditioned_on]
 
 	def update(i, r):
-		node = net._nodes[i]
+		node = sampleable_nodes[i]
 		marg = net.markov_blanket_marginal(node)
 		# new value chosen by inverting the CDF
 		# [any distribution can be sampled from by taking CDF^-1(value in [0,1])]
@@ -267,13 +272,13 @@ def coupling_from_past(net, iterations=100):
 	def min_net():
 		"""set net to 'minimum' value
 		"""
-		for n in net.iter_nodes():
+		for n in sampleable_nodes:
 			n.set_value_by_index(0)
 
 	def max_net():
 		"""set net to 'minimum' value
 		"""
-		for n in net.iter_nodes():
+		for n in sampleable_nodes:
 			n.set_value_by_index(n.size()-1)
 
 	def compose(i_list, r_list):
@@ -292,7 +297,7 @@ def coupling_from_past(net, iterations=100):
 		return result_from_min == result_from_max
 
 	T_samples = np.zeros(iterations)
-	N = len(net._nodes)
+	N = len(sampleable_nodes)
 	for itr in xrange(iterations):
 		ii = [np.random.randint(N)]
 		rr = [np.random.rand()]
